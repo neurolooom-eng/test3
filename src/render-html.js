@@ -37,6 +37,7 @@
     el.style.height = p.h * PX + 'px';
     if (p.fill) el.style.background = col(p.fill);
     if (p.line) el.style.border = (p.lineW || 1) * PT + 'px ' + (p.dash ? 'dashed' : 'solid') + ' ' + col(p.line);
+    if (p.radius) el.style.borderRadius = p.radius * PX + 'px';
     return el;
   }
 
@@ -49,7 +50,8 @@
     if (p.italic) el.style.fontStyle = 'italic';
     el.style.textAlign = p.align;
     el.style.justifyContent = { top: 'flex-start', middle: 'center', bottom: 'flex-end' }[p.valign] || 'flex-start';
-    if (p.margin) el.style.padding = p.margin * PT + 'px';
+    if (p.margin) el.style.padding = (Array.isArray(p.margin) ? p.margin : [p.margin, p.margin, p.margin, p.margin])
+      .map(function (m) { return m * PT + 'px'; }).join(' ');
     if (p.role === 'title') el.setAttribute('role', 'heading');
     var inner = document.createElement('div');
     inner.className = 'p-text-inner';
@@ -79,9 +81,10 @@
     svg.style.top = p.y * PX - pad + 'px';
     var c = col(p.color), sw = (p.width || 1) * PT;
     var l = document.createElementNS(svg.namespaceURI, 'line');
-    var x2 = pad + w, y2 = pad + h;
-    if (p.arrow) { var a = sw * 3.2; if (w >= h) x2 -= a; else y2 -= a; }
-    l.setAttribute('x1', pad); l.setAttribute('y1', pad); l.setAttribute('x2', x2); l.setAttribute('y2', y2);
+    var x1 = pad, y1 = pad, x2 = pad + w, y2 = pad + h, a = sw * 3.2;
+    if (p.arrow) { if (w >= h) x2 -= a; else y2 -= a; }
+    if (p.arrowStart) { if (w >= h) x1 += a; else y1 += a; }
+    l.setAttribute('x1', x1); l.setAttribute('y1', y1); l.setAttribute('x2', x2); l.setAttribute('y2', y2);
     l.setAttribute('stroke', c); l.setAttribute('stroke-width', sw);
     if (p.dash) l.setAttribute('stroke-dasharray', sw * 3 + ' ' + sw * 2);
     svg.appendChild(l);
@@ -93,6 +96,15 @@
       tri.setAttribute('points', pts.map(function (q) { return q.join(','); }).join(' '));
       tri.setAttribute('fill', c);
       svg.appendChild(tri);
+    }
+    if (p.arrowStart) {
+      var t2 = document.createElementNS(svg.namespaceURI, 'polygon'), s2 = sw * 3.4, sx = pad, sy = pad;
+      var pts2 = w >= h
+        ? [[sx, sy], [sx + s2, sy - s2 * 0.6], [sx + s2, sy + s2 * 0.6]]
+        : [[sx, sy], [sx - s2 * 0.6, sy + s2], [sx + s2 * 0.6, sy + s2]];
+      t2.setAttribute('points', pts2.map(function (q) { return q.join(','); }).join(' '));
+      t2.setAttribute('fill', c);
+      svg.appendChild(t2);
     }
     return svg;
   }
@@ -156,12 +168,14 @@
     return el;
   }
 
-  function renderChrome(slideEl, index) {
-    var c = S.chrome(cfg);
-    slideEl.appendChild(renderPrimitive(c.footerRule));
-    slideEl.appendChild(renderPrimitive(c.footerText));
-    var n = renderText(Object.assign({ type: 'text', text: String(index + 1), align: 'right', valign: 'middle', font: 'body' }, c.slideNumber));
-    if (cfg.theme.footer.showSlideNumber) slideEl.appendChild(n);
+  function renderChrome(slideEl, index, variant) {
+    var c = S.chrome(cfg, variant);
+    if (c.footer) {
+      slideEl.appendChild(renderPrimitive(c.footerRule));
+      slideEl.appendChild(renderPrimitive(c.footerText));
+      var n = renderText(Object.assign({ type: 'text', text: String(index + 1), align: 'right', valign: 'middle', font: 'body' }, c.slideNumber));
+      if (cfg.theme.footer.showSlideNumber) slideEl.appendChild(n);
+    }
     var lg = c.logo, el;
     if (lg.imagePath) {
       el = document.createElement('img');
@@ -187,7 +201,7 @@
       el.dataset.slide = sl.id;
       el.style.background = col('background');
       sl.primitives.forEach(function (p) { el.appendChild(renderPrimitive(p)); });
-      renderChrome(el, i);
+      renderChrome(el, i, sl.variant);
       stage.appendChild(el);
     });
     document.title = cfg.brand.toolName + ' leadership deck';

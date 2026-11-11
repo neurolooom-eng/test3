@@ -11,9 +11,9 @@
   --c-neutral: #c9d0db;
   --font-body: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   --font-heading: var(--font-body);
-  --app-bg: #e9ecf1;
+  --app-bg: #e6ebf3;
 }
-:root[data-palette="dark"] { --app-bg: #070d18; }
+:root[data-palette="dark"] { --app-bg: #030a1a; }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
@@ -47,6 +47,7 @@ body {
   box-shadow: 0 1px 3px rgba(0, 0, 0, .12), 0 8px 24px rgba(0, 0, 0, .08);
 }
 .slide.active { display: block; }
+.slide { border-radius: 6px; box-shadow: 0 2px 6px rgba(11, 31, 58, .10), 0 18px 48px rgba(11, 31, 58, .14); }
 
 /* ---------- primitives ---------- */
 .p { position: absolute; }
@@ -64,16 +65,16 @@ body {
 .inputs { display: flex; flex-direction: column; font-family: var(--font-body); }
 .inp-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--c-neutral); }
 .inp-row:last-child { border-bottom: 0; }
-.inp-label { font-size: 14px; color: var(--c-muted); line-height: 1.1; }
+.inp-label { font-size: 12.5px; color: var(--c-muted); line-height: 1.1; }
 .inp-ctl {
-  font: 600 16px/1.2 var(--font-body);
+  font: 600 14px/1.2 var(--font-body);
   color: var(--c-text);
   background: var(--c-background);
   border: 1px solid var(--c-neutral);
   border-radius: 3px;
   padding: 2px 6px;
-  width: 76px;
-  height: 27px;
+  width: 72px;
+  height: 25px;
   text-align: right;
   flex: none;
 }
@@ -92,10 +93,10 @@ select.inp-ctl { text-align: left; width: 132px; padding: 2px 2px; }
 #toolbar button {
   font: 500 14px/1 var(--font-body);
   padding: 8px 12px;
-  border: 1px solid #b8c0cc;
+  border: 1px solid #c3cee0;
   background: #fff;
-  color: #14213d;
-  border-radius: 4px;
+  color: #0b1f3a;
+  border-radius: 999px;
   cursor: pointer;
 }
 #toolbar button:hover { border-color: var(--c-accent); }
@@ -119,7 +120,7 @@ select.inp-ctl { text-align: left; width: 132px; padding: 2px 2px; }
   white-space: pre-wrap;
 }
 body.with-notes #notes { display: block; }
-#notes-meta { font-weight: 700; margin-bottom: 6px; color: #0f766e; }
+#notes-meta { font-weight: 700; margin-bottom: 6px; color: #1d4ed8; }
 
 /* ---------- print / PDF fallback: one slide per 13.333 × 7.5 in page ---------- */
 @page { size: 13.333in 7.5in; margin: 0; }
@@ -133,6 +134,7 @@ body.with-notes #notes { display: block; }
     display: block !important;
     position: relative;
     box-shadow: none;
+    border-radius: 0;
     break-after: page;
     page-break-after: always;
     -webkit-print-color-adjust: exact;

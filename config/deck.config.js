@@ -5,8 +5,11 @@
  * presenters, savings assumptions, disclaimers and the theme.
  * You should not need to edit HTML/CSS/JS for normal updates.
  *
- * Tokens: any string may contain {tool}, which is replaced with brand.toolName,
- * and {presenterOne} / {presenterTwo}, replaced with the presenter names.
+ * Slides are deliberately light on text. Longer explanations live in
+ * `notes` fields and appear in the speaker notes (press N, or in PowerPoint).
+ *
+ * Tokens: any string may contain {tool} (replaced with brand.toolName) and
+ * {presenterOne} / {presenterTwo} (replaced with the presenter names).
  *
  * IMPORTANT: every number below is a SYNTHETIC PLACEHOLDER. Replace with
  * validated internal figures before presenting. Do not commit confidential
@@ -19,10 +22,9 @@
     /* ------------------------------------------------------------------ */
     brand: {
       toolName: 'AIDA',
-      deckTitle: '{tool}: Evidence-led Quality Reviews',
+      deckTitle: 'Evidence-led Quality Reviews',
       deckSubtitle: 'Quality Engineering · Leadership briefing',
-      // Set logoPlaceholder.imagePath to a PNG/SVG path (relative to index.html)
-      // to replace the dashed placeholder box. Leave null to show the placeholder.
+      // Set imagePath to a PNG/SVG path (relative to index.html) to replace the placeholder box.
       logoPlaceholder: { text: 'LOGO', imagePath: null },
       footerText: '{tool} · Quality Engineering · Internal — placeholder content',
       roleLabel: 'Quality Engineers'
@@ -33,10 +35,9 @@
       templateRepository: 'ARIS',
       workManagement: 'Azure',
       documentContainer: 'Miro / Azure',
-      repository: 'Repository / pull requests',
+      repository: 'Repository / PRs',
       defectTracker: 'Defects / bugs'
     },
-    // What each system provides (shown as subtle source labels on slide 2).
     systemLabelRoles: {
       templateRepository: 'approved templates',
       workManagement: 'release scope, work items, planning',
@@ -53,43 +54,52 @@
 
     /* ------------------------------------------------------------------ */
     opening: {
-      keyMessage: 'Quality review should happen where decisions are made—not only after documents are assembled.',
-      supportingLine: '{tool} combines connected evidence, LLM reasoning, and deterministic validation to strengthen release traceability and lifecycle readiness.',
+      keyMessage: 'Quality review where decisions are made — not after documents are assembled.',
+      supportingLine: 'Connected evidence + LLM reasoning + deterministic validation.',
       operatingModes: [
-        { title: 'LLM-based review', text: 'Content, context, quality, and consistency checks.' },
-        { title: 'Hybrid review', text: 'LLM reasoning plus Python/script-based validation.' },
-        { title: 'Script-based validation', text: 'Deterministic mappings, completeness, coverage, and repeatable checks.' }
+        { title: 'LLM-based review', text: 'Content, context, quality, consistency' },
+        { title: 'Hybrid review', text: 'LLM reasoning + script validation' },
+        { title: 'Script-based validation', text: 'Mappings, completeness, coverage' }
       ],
       solutionAreas: [
         { label: 'Document Reviews', focus: true },
         { label: 'Data Insights', focus: false }
       ],
-      focusNote: 'Today’s focus: Document Reviews and connected source evidence'
+      notes: '{tool} combines connected evidence, LLM reasoning, and deterministic validation to strengthen release traceability and lifecycle readiness. Two solution areas: Document Reviews and Data Insights. Today we focus on Document Reviews and connected source evidence.'
     },
 
     /* ------------------------------------------------------------------ */
     useCaseOne: {
+      sectionProblem: '1 · The problem',
+      headlineProblem: [
+        { text: 'One release change ripples across ' },
+        { text: 'five linked artefacts', emphasis: true },
+        { text: ' — gaps surface only at formal review' }
+      ],
+      tagline: 'Quality is found late, and found again.',
       titleProblem: 'Use Case 1 — Evidence-based Release Traceability Review',
       titleApproach: 'Use Case 1 — From Formal Review to First Time Right',
       problemStatement: 'When release documents enter formal review, QEs must manually reconcile traceability and compliance across tightly coupled artefacts. This creates repeated review cycles and leaves a risk of missed impact, missing mappings, and inconsistent evidence.',
-      // Shown as a display figure on slide 2. Placeholder — configure actual value.
+      // Placeholder — configure actual value.
       reviewCycleRange: '3–6',
-      reviewCycleCaption: 'review cycles for an average document',
-      artefactLabels: [
-        'Release Plan',
-        'Requirements Document',
-        'Test Protocol',
-        'Code Review Report / PR evidence',
-        'Requirements Traceability Matrix (RTM)'
+      artefacts: [
+        { eyebrow: 'Scope', name: 'Release Plan' },
+        { eyebrow: 'Requirements', name: 'Requirements Document' },
+        { eyebrow: 'Verification', name: 'Test Protocol' },
+        { eyebrow: 'Implementation', name: 'Code Review / PR evidence' },
+        { eyebrow: 'Traceability', name: 'RTM' }
       ],
-      changeTag: 'Release change',
-      // Gap markers drawn on the evidence chain. `afterArtefact` is the 0-based
-      // index of the artefact the gap sits after (i.e. on the connector to the next).
+      // Gap markers on the chain; `afterArtefact` = index of the artefact before the gap.
       issueLabels: [
-        { afterArtefact: 1, text: 'Acceptance criterion with no mapped test' },
-        { afterArtefact: 3, text: 'PR linked to a task, not the requirement' }
+        { afterArtefact: 1, text: 'AC with no mapped test' },
+        { afterArtefact: 3, text: 'PR not linked to requirement' }
       ],
-      keyTakeaway: 'One release change can affect multiple linked artefacts.',
+      loopLabel: 'Returned to author · {cycles} review cycles per document',
+      problemCards: [
+        { title: 'Impact missed', text: 'Affected documents mis-identified after a change.' },
+        { title: 'Mappings missing', text: 'Scope → requirement → test → PR → defect links broken or indirect.' },
+        { title: 'Manual, repeated checks', text: 'DHF, GDP and document-quality checks re-run by hand every cycle.' }
+      ],
       evidenceRelationship: 'Release scope → requirement → acceptance criteria → test coverage → implementation / pull request → defects → consolidated RTM',
       failurePoints: [
         'Impacted documents are incorrectly identified after a change.',
@@ -98,29 +108,42 @@
         'Bugs are not linked to requirements or test cases.',
         'DHF, GDP, and document-quality checks are repetitive and manually executed.'
       ],
-      currentState: {
-        tag: 'Current use',
-        title: 'Evidence-based QE review',
-        text: 'Today, QEs use {tool} to make formal review evidence-based—reviewing against connected source evidence, not only the document narrative.'
-      },
-      futureState: {
-        tag: 'Future · adoption model',
-        title: 'Author-initiated pre-review',
-        text: 'The same QE-defined, governed checks can be initiated by authors on partial or complete content before formal QE submission.'
-      },
-      outcome: {
-        tag: 'Target outcome',
-        title: 'First Time Right',
-        text: 'Earlier feedback and consistent baseline checks aim to reduce avoidable rework and move formal QE review toward strategy, risk, tailoring, and expert judgement.'
-      },
+
+      sectionApproach: '1 · The shift',
+      headlineApproach: [
+        { text: 'From formal review to ' },
+        { text: 'First Time Right', emphasis: true }
+      ],
+      taglineApproach: 'Same QE-defined checks — moved earlier, run by authors.',
+      lanes: [
+        {
+          tag: 'Today · current use', future: false,
+          steps: [
+            { role: 'Author', text: 'Prepares document' },
+            { role: 'QE + {tool}', text: 'Evidence-based review', highlight: true },
+            { role: 'Approval', text: 'After review cycles' }
+          ]
+        },
+        {
+          tag: 'Next · future adoption', future: true,
+          steps: [
+            { role: 'Author + {tool}', text: 'Pre-review, before submission', highlight: true },
+            { role: 'QE', text: 'Strategy, risk, judgement' },
+            { role: 'Approval', text: 'First Time Right' }
+          ]
+        }
+      ],
+      currentStateNote: 'Today, QEs use {tool} to make formal review evidence-based—reviewing against connected source evidence, not only the document narrative.',
+      futureStateNote: 'The same QE-defined, governed checks can be initiated by authors on partial or complete content before formal QE submission. This is a future / adoption model.',
+      outcomeNote: 'Earlier feedback and consistent baseline checks aim to reduce avoidable rework and move formal QE review toward strategy, risk, tailoring, and expert judgement.',
       // Placeholder target — present as an assumption, never a guarantee.
       targetReviewCycles: '[target]',
-      targetStatement: 'Target: reduce QE review cycles from {current} toward {target} for eligible checks.',
-      targetCaveat: 'Target / assumption — not a guaranteed reduction.',
+      targetLabel: 'Target review cycles',
+      targetCaveat: 'For eligible checks · assumption, not a guarantee',
       demoSteps: [
-        { short: 'Select release scope', detail: 'Select an in-scope release / work item set.' },
-        { short: 'Show connected evidence', detail: 'Show connected evidence for a requirement or change.' },
-        { short: 'Run traceability check', detail: 'Run a {tool} traceability validation.' },
+        { short: 'Select scope', detail: 'Select an in-scope release / work item set.' },
+        { short: 'Connected evidence', detail: 'Show connected evidence for a requirement or change.' },
+        { short: 'Run validation', detail: 'Run a {tool} traceability validation.' },
         { short: 'Surface gaps', detail: 'Surface representative gaps: missing mapping, unlinked PR/defect, coverage issue, or DHF/GDP observation.' },
         { short: 'QE action', detail: 'Close with the action a QE takes.' }
       ]
@@ -128,45 +151,62 @@
 
     /* ------------------------------------------------------------------ */
     useCaseTwo: {
+      sectionProblem: '2 · The checkpoints',
+      headlineProblem: [
+        { text: 'Review quality ' },
+        { text: 'at the source', emphasis: true },
+        { text: ' — while the product can still change' }
+      ],
+      tagline: 'Source-driven lifecycle quality assurance · already in QE use at multiple stages',
       titleProblem: 'Use Case 2 — Source-driven Lifecycle Quality Assurance',
       titleApproach: 'Use Case 2 — Review Quality at the Source',
       problemStatement: 'Requirement quality, design completeness, and test coverage must be assessed at lifecycle decision points while the product can still be changed—not only after evidence is assembled for formal review.',
-      currentUseTag: 'Current use',
-      currentUseText: 'Already applied by QEs at multiple lifecycle stages.',
-      lifecycleLabels: ['Release grooming / Design Input', 'Development', 'Test readiness', 'Verification'],
-      // Index into lifecycleLabels for each highlighted checkpoint.
+      lifecycleLabels: ['Design Input', 'Development', 'Test readiness', 'Verification'],
+      changeArrowLabel: 'Room to change the product narrows',
       checkpointLabels: [
         {
           stage: 0,
-          title: 'Checkpoint 1 · Design Input',
-          when: 'Before development begins',
-          question: 'Are requirements clear, complete, testable and INCOSE-aligned—with detailed design where needed?',
-          value: 'Finds ambiguous requirements and missing design information before implementation.'
+          title: 'Design Input',
+          when: 'Before development',
+          question: 'Are requirements clear, testable and INCOSE-aligned?',
+          value: 'Ambiguity and missing design'
         },
         {
           stage: 2,
-          title: 'Checkpoint 2 · Test readiness',
-          when: 'Before verification begins',
-          question: 'Do requirements plus detailed design have sufficient test coverage—traceable to each acceptance criterion?',
-          value: 'Finds coverage and traceability gaps before verification execution.'
+          title: 'Test readiness',
+          when: 'Before verification',
+          question: 'Is every acceptance criterion covered by a test?',
+          value: 'Coverage and traceability gaps'
         }
       ],
-      sourceNote: '{tool} pulls from connected sources: requirements, detailed design, acceptance criteria, test protocol / suite.',
+      sourcesLabel: '{tool} pulls from',
+      sources: ['Requirements', 'Detailed design', 'Acceptance criteria', 'Test protocol / suite'],
       // Code review is NOT part of Use Case 2 today. Keep showOnSlide false unless asked.
       codeReviewStatus: {
         status: 'Not yet tested',
         text: 'Code-review checks are not yet tested for this use case (possible future extension).',
         showOnSlide: false
       },
-      approachSubtitle: 'Current QE use: one configured quality setup, reused at each lifecycle checkpoint.',
+      checkpointNotes: [
+        'Design Input / before development begins: are requirements clearly written, sufficiently complete and testable, aligned to INCOSE guidance, and supported by detailed design where needed? Finds ambiguous requirements and missing design information before implementation.',
+        'Test readiness / before verification begins: do requirements plus detailed design have sufficient coverage in the test protocol or test suite? Is traceability complete at acceptance-criteria level? Finds coverage and traceability gaps before verification execution.'
+      ],
+
+      sectionApproach: '2 · One setup, reused',
+      headlineApproach: [
+        { text: 'Configure once. ' },
+        { text: 'Reuse at every checkpoint.', emphasis: true }
+      ],
+      taglineApproach: 'Current QE use — the same governed checks applied across the lifecycle.',
+      hubTitle: '{tool} quality setup',
       reusableSetup: [
-        { mode: 'LLM-based', text: 'Requirement quality · content context · INCOSE-aligned review' },
-        { mode: 'Hybrid', text: 'Contextual assessment + deterministic validation' },
-        { mode: 'Script-based', text: 'Link coverage · mapping · completeness · traceability' }
+        { mode: 'LLM-based', text: 'Requirement quality · INCOSE' },
+        { mode: 'Hybrid', text: 'Context + deterministic checks' },
+        { mode: 'Script-based', text: 'Links · mapping · coverage' }
       ],
       checkpointApplies: [
-        'Requirement quality; detailed-design needs identified',
-        'Requirement + design vs. tests, at acceptance-criteria level'
+        'Requirement quality · design needs',
+        'AC-level test coverage'
       ],
       demoSteps: [
         { short: 'Design Input', detail: 'Inspect requirement quality and whether detailed design needs are identified.' },
@@ -176,38 +216,37 @@
 
     /* ------------------------------------------------------------------ */
     value: {
-      title: 'What {tool} Changes: From Compliance Effort to Quality Impact',
-      pillars: [
-        {
-          tag: 'Current use',
-          future: false,
-          title: 'Evidence-based, full-population review',
-          text: 'Review the complete applicable release scope against connected source evidence—not a limited sample or document narrative alone.'
-        },
-        {
-          tag: 'Future · adoption model',
-          future: true,
-          title: 'Author-initiated pre-review',
-          text: 'QE-defined, governed checks can be run on partial or complete content before formal QE submission.'
-        },
-        {
-          tag: 'Target outcome',
-          future: false,
-          title: 'First Time Right, strategy-led QE review',
-          text: 'Repeatable baseline checks are applied consistently, allowing QEs to focus on quality strategy, risk-based decisions, tailoring, and expert judgement.'
-        }
+      section: '3 · What changes',
+      headline: [
+        { text: 'From compliance effort to ' },
+        { text: 'quality impact', emphasis: true }
       ],
-      caveat: 'This is not 100% assurance. It is 100% coverage of the applicable configured checks.',
-      bottomLine: '{tool} does not replace QE judgement; it removes repeatable review effort so QE expertise can go deeper where it matters.'
+      title: 'What {tool} Changes: From Compliance Effort to Quality Impact',
+      shifts: [
+        { from: 'Limited sample, document narrative', to: 'Full-population, evidence-based review', tag: 'Current use', kind: 'current' },
+        { from: 'Checks only at formal QE submission', to: 'Author-initiated pre-review', tag: 'Future adoption', kind: 'future' },
+        { from: 'QE time on repeatable checks', to: 'QE time on strategy, risk, judgement', tag: 'Target outcome', kind: 'outcome' }
+      ],
+      pillarNotes: [
+        'Evidence-based, full-population review: review the complete applicable release scope against connected source evidence—not a limited sample or document narrative alone.',
+        'Author-initiated pre-review: QE-defined, governed checks can be run on partial or complete content before formal QE submission. Future / adoption model where not yet deployed.',
+        'First Time Right, strategy-led QE review: repeatable baseline checks are applied consistently, allowing QEs to focus on quality strategy, risk-based decisions, tailoring, and expert judgement.'
+      ],
+      caveat: 'Not 100% assurance — 100% coverage of the applicable configured checks.',
+      bottomLine: '{tool} does not replace QE judgement. It removes repeatable effort so QE expertise goes deeper where it matters.'
     },
 
     /* ------------------------------------------------------------------ */
     savings: {
+      section: '4 · QE capacity',
+      headline: [
+        { text: 'Releasing QE capacity for ' },
+        { text: 'deeper technical review', emphasis: true }
+      ],
       title: 'Releasing QE Capacity for Deeper Technical Quality Review',
-      // Shows an "Illustrative — synthetic values" tag. Set false once real,
-      // validated figures are configured.
+      // Shows an "Illustrative" tag. Set false once real, validated figures are configured.
       showIllustrativeTag: true,
-      illustrativeTag: 'Illustrative · synthetic placeholder values',
+      illustrativeTag: 'Illustrative · synthetic values',
       defaultReleaseScenario: 'major',
       defaultUserScenario: 'typical',
       // Applicable adoption / scope (0–1).
@@ -257,19 +296,20 @@
         manualHoursPerDocument: 'Current QE effort per document (h)',
         aidaHoursPerDocument: '{tool}-assisted QE effort per document (h)',
         adoptionRate: 'Applicable adoption / scope (%)',
-        currentBar: 'Current QE hours per release',
-        aidaBar: '{tool}-assisted QE hours per release',
+        currentBar: 'Today',
+        aidaBar: 'With {tool}',
+        barsTitle: 'QE hours per release',
         resultReleased: 'QE capacity released per release',
         resultPercent: 'Reduction in QE review hours',
         resultAnnual: 'Annual QE capacity released',
         cyclesTargetNote: 'Target / assumption'
       },
-      reinvestmentLead: 'Reinvest released QE capacity into:',
+      reinvestmentLead: 'Reinvest into',
       reinvestmentItems: [
-        'detailed technical quality reviews',
-        'risk-based assessment',
-        'requirements and design quality',
-        'early lifecycle quality support'
+        'Detailed technical reviews',
+        'Risk-based assessment',
+        'Requirements & design',
+        'Early lifecycle support'
       ],
       disclaimerLines: [
         'This is an indicative QE-capacity estimate, not a headcount-reduction claim. Results vary with release complexity, document count, rule coverage, source-data quality, user proficiency, and adoption.',
@@ -283,7 +323,7 @@
     },
 
     /* ------------------------------------------------------------------ */
-    // Slide owners and time guides (shown in speaker notes and presenter view).
+    // Slide owners and time guides (speaker notes and slide header).
     agenda: [
       { owner: 'presenterOne', time: '0:30–0:45' },
       { owner: 'presenterOne', time: '1:00' },
@@ -301,48 +341,55 @@
       palettes: {
         light: {
           background: 'FFFFFF',
-          surface: 'F4F6F9',      // subtle panels
-          text: '14213D',         // dark navy — primary text
-          muted: '5B6577',        // secondary text
-          primary: '14213D',      // navy
-          secondary: '33415C',
-          accent: '0F766E',       // restrained teal
-          accentSoft: 'E6F2F1',
-          success: '2F6B3F',
-          warning: 'B45309',      // amber — issues / gaps only
-          warningSoft: 'FDF3E3',
-          neutral: 'C9D0DB',      // connectors, hairlines
-          onAccent: 'FFFFFF'
+          surface: 'F2F5FA',      // cool blue-grey panels
+          text: '0B1F3A',         // deep navy — primary text
+          muted: '5B6B84',        // secondary text
+          primary: '0B2A5B',      // navy
+          secondary: '2E4366',
+          accent: '1D4ED8',       // royal blue — lead colour
+          accentSoft: 'E7EEFC',
+          accentLine: 'B9CBF5',
+          success: '1F6F43',
+          warning: 'C8102E',      // red — gaps, risks, one emphasis
+          warningSoft: 'FCECEE',
+          neutral: 'D5DCE7',      // connectors, hairlines
+          onAccent: 'FFFFFF',
+          panel: '0B2A5B',        // dark navy panels
+          onPanel: 'FFFFFF',
+          onPanelMuted: 'AFC0E0'
         },
         dark: {
-          background: '0F1A2E',
-          surface: '18253D',
-          text: 'EEF2F7',
-          muted: 'A9B4C6',
-          primary: 'EEF2F7',
-          secondary: 'C9D3E2',
-          accent: '4FB8AE',
-          accentSoft: '173A40',
-          success: '7CC48F',
-          warning: 'F2A649',
-          warningSoft: '3A2C17',
-          neutral: '3C4A63',
-          onAccent: '0F1A2E'
+          background: '07142D',
+          surface: '0F2145',
+          text: 'EEF3FB',
+          muted: 'A3B3CF',
+          primary: 'EEF3FB',
+          secondary: 'C9D5EA',
+          accent: '5B8DEF',
+          accentSoft: '132B5C',
+          accentLine: '2C4A86',
+          success: '6FCF97',
+          warning: 'FF5C70',
+          warningSoft: '3A1522',
+          neutral: '263B66',
+          onAccent: 'FFFFFF',
+          panel: '13295A',
+          onPanel: 'FFFFFF',
+          onPanelMuted: 'AFC0E0'
         }
       },
       fonts: {
         // HTML font stacks (first available is used).
         headingStack: '"Segoe UI", "Helvetica Neue", Arial, sans-serif',
         bodyStack: '"Segoe UI", "Helvetica Neue", Arial, sans-serif',
-        // Single font names written into the .pptx (PowerPoint needs one name).
+        // Single font names written into the .pptx.
         pptxHeading: 'Segoe UI',
         pptxBody: 'Segoe UI'
       },
       logoStyle: { x: 11.43, y: 0.36, w: 1.3, h: 0.45, dashed: true },
       diagramStyle: {
-        connectorWidth: 1.5,   // points
-        cardBorderWidth: 1,    // points
-        accentBarHeight: 0.06  // inches
+        connectorWidth: 1.75,  // points
+        cardRadius: 0.1        // inches (rounded corners on cards and flow boxes)
       },
       footer: { showSlideNumber: true }
     }

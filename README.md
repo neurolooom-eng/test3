@@ -31,6 +31,10 @@ All content is **synthetic placeholder text and numbers**. Replace it with valid
 
 The handover line after slide 3 is in the speaker notes for slide 3 (`speakerNotes.handoverAfterSlide3`).
 
+## Design
+
+The palette is navy and royal blue, with red used only for gaps, risks and one emphasis per slide. Each slide opens with a section pill and a one-sentence headline, and is built around a single visual: an evidence chain with a return-to-author loop, today/next swimlanes, a lifecycle track, a hub-and-spoke diagram, from→to shifts, or a KPI panel. All of these are configurable in `theme.palettes`.
+
 ## Editing content: `config/deck.config.js`
 
 Normal updates only touch this one file:
@@ -89,5 +93,5 @@ Both the HTML deck and the PowerPoint file are drawn from the same shape list, s
 ## Known limitations
 
 - **Fonts:** the default is Segoe UI, which is standard on Windows. On machines without it, the browser falls back through the font stack. PowerPoint substitutes a font on its own, so line breaks can shift a little. Layouts leave room for this, but check the deck on the machine you will present from.
-- **Minimum text size:** body text is 17–24 pt. Some secondary labels are smaller: tags and kickers (11–13 pt), the slide 7 assumption inputs (about 11–13 pt), and the disclaimer (10 pt).
+- **Minimum text size:** slides are built to be visual, so most of the explanation lives in the speaker notes. Headlines are 28 pt and the key statements on slides are 14–20 pt. Some labels are smaller: section pills and eyebrow labels (10.5–12 pt), the slide 7 assumption inputs (about 9.5–12 pt), and the disclaimer (8.5 pt).
 - **Exported assumptions panel:** in the PPTX, slide 7's inputs are a static snapshot of the values at export time. The numbers and bars are also static, so edit the config and re-export to change them.

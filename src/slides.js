@@ -7,10 +7,10 @@
  * every diagram exports as native, editable PowerPoint shapes and text.
  *
  * Primitive types
- *   rect / ellipse : x, y, w, h, fill, line, lineW (pt), dash
- *   line           : x, y, w, h (w or h = 0), color, width (pt), dash, arrow
+ *   rect / ellipse : x, y, w, h, fill, line, lineW (pt), dash, radius (in)
+ *   line           : x, y, w, h (w or h = 0), color, width (pt), dash, arrow, arrowStart
  *   text           : x, y, w, h, text | runs[], size (pt), color, bold, italic,
- *                    align, valign, font ('heading'|'body'), fill, line, role
+ *                    align, valign, font ('heading'|'body'), fill, line, radius, role
  *   inputs         : savings assumptions (interactive in HTML, a static list in PPTX)
  * Colours are palette token names (see config.theme.palettes).
  */
@@ -18,7 +18,8 @@
   'use strict';
 
   var W = 13.333, H = 7.5, M = 0.6, CW = W - 2 * M;
-  var LAYOUT = { width: W, height: H, margin: M, contentWidth: CW, titleY: 0.68, titleH: 0.62, footerY: 6.97, footerRuleY: 6.9 };
+  var LAYOUT = { width: W, height: H, margin: M, contentWidth: CW, footerY: 6.97, footerRuleY: 6.9 };
+  var R = 0.1; // default corner radius (overridden by theme.diagramStyle.cardRadius)
 
   function makeTpl(cfg) {
     var p = cfg.presenters;
@@ -38,280 +39,302 @@
   /* ---------- primitive helpers ---------- */
   function rect(x, y, w, h, o) { return Object.assign({ type: 'rect', x: x, y: y, w: w, h: h }, o || {}); }
   function ellipse(x, y, w, h, o) { return Object.assign({ type: 'ellipse', x: x, y: y, w: w, h: h }, o || {}); }
-  function line(x, y, w, h, o) { return Object.assign({ type: 'line', x: x, y: y, w: w, h: h, color: 'neutral', width: 1.5 }, o || {}); }
+  function line(x, y, w, h, o) { return Object.assign({ type: 'line', x: x, y: y, w: w, h: h, color: 'neutral', width: 1.75 }, o || {}); }
   function text(x, y, w, h, t, o) {
     var p = Object.assign({ type: 'text', x: x, y: y, w: w, h: h, size: 18, color: 'text', font: 'body', align: 'left', valign: 'top' }, o || {});
     if (Array.isArray(t)) p.runs = t; else p.text = t;
     return p;
   }
   function caps(s) { return String(s).toUpperCase(); }
+  function pillW(label, size) { return Math.max(0.9, String(label).length * (size || 11) * 0.0095 + 0.4); }
 
-  /* Status tag: current = filled accent, future = dashed outline, outcome = solid outline.
+  /* Status pill: current = filled blue, future = dashed outline, outcome = solid outline.
      Each state differs by fill/border style AND its text — never colour alone. */
-  function statusTag(x, y, w, label, kind) {
-    var base = { size: 11, bold: true, align: 'center', valign: 'middle', font: 'body' };
+  function statusPill(x, y, w, label, kind) {
+    var base = { size: 10.5, bold: true, align: 'center', valign: 'middle', radius: 0.16 };
     if (kind === 'current') return text(x, y, w, 0.32, caps(label), Object.assign(base, { fill: 'accent', color: 'onAccent' }));
-    if (kind === 'future') return text(x, y, w, 0.32, caps(label), Object.assign(base, { line: 'secondary', lineW: 1.25, dash: 'dash', color: 'secondary' }));
-    return text(x, y, w, 0.32, caps(label), Object.assign(base, { line: 'accent', lineW: 1.25, color: 'accent' }));
+    if (kind === 'future') return text(x, y, w, 0.32, caps(label), Object.assign(base, { fill: 'background', line: 'secondary', lineW: 1.25, dash: 'dash', color: 'secondary' }));
+    return text(x, y, w, 0.32, caps(label), Object.assign(base, { fill: 'background', line: 'accent', lineW: 1.25, color: 'accent' }));
   }
-  function statusCard(x, y, w, h, kind) {
-    if (kind === 'current') return rect(x, y, w, h, { fill: 'background', line: 'accent', lineW: 1.25 });
-    if (kind === 'future') return rect(x, y, w, h, { fill: 'background', line: 'secondary', lineW: 1.25, dash: 'dash' });
-    return rect(x, y, w, h, { fill: 'surface' });
-  }
-  function numberDot(x, y, d, n) {
+  function numberDot(x, y, d, n, fill, color) {
     return [
-      ellipse(x, y, d, d, { fill: 'accent' }),
-      text(x, y, d, d, String(n), { size: Math.round(d * 34), bold: true, color: 'onAccent', align: 'center', valign: 'middle' })
+      ellipse(x, y, d, d, { fill: fill || 'accent' }),
+      text(x, y, d, d, String(n), { size: Math.round(d * 32), bold: true, color: color || 'onAccent', align: 'center', valign: 'middle' })
     ];
   }
-  function kicker(t) { return text(M, 0.3, 9.5, 0.32, caps(t), { size: 12, bold: true, color: 'accent', valign: 'middle' }); }
-  function title(t) { return text(M, LAYOUT.titleY, CW, LAYOUT.titleH, t, { size: 26, bold: true, font: 'heading', color: 'text', valign: 'middle', role: 'title' }); }
 
-  function demoBand(y, label, steps, tpl, opts) {
-    var out = [text(M, y, 4.8, 0.34, caps(label), { size: 12, bold: true, fill: 'primary', color: 'background', align: 'center', valign: 'middle' })];
-    var n = steps.length, gap = 0.14, cy = y + 0.46, ch = opts.chipH;
-    var cw = (CW - gap * (n - 1)) / n;
-    steps.forEach(function (s, i) {
-      var cx = M + i * (cw + gap);
-      out.push(rect(cx, cy, cw, ch, { fill: 'surface' }));
-      var runs = [{ text: (i + 1) + '  ', bold: true, color: 'accent' }, { text: tpl(s.short), bold: true }];
-      if (opts.withDetail) runs.push({ text: ' — ' + tpl(s.detail), bold: false, color: 'muted' });
-      out.push(text(cx + 0.16, cy, cw - 0.3, ch, runs, { size: opts.size, valign: 'middle' }));
-    });
-    return out;
+  /* Standard slide header: section pill, presenter, action headline, tagline. */
+  function header(cfg, tpl, idx, section, headlineRuns, tagline, emphasis) {
+    var s = [], label = caps(tpl(section));
+    s.push(text(M, 0.42, pillW(label), 0.32, label, { size: 10.5, bold: true, color: 'accent', fill: 'accentSoft', align: 'center', valign: 'middle', radius: 0.16 }));
+    s.push(text(6.4, 0.42, 4.8, 0.32, ownerName(cfg, cfg.agenda[idx].owner), { size: 11, color: 'muted', align: 'right', valign: 'middle' }));
+    s.push(text(M, 0.86, CW, 0.98, headlineRuns.map(function (r) {
+      return r.emphasis ? { text: tpl(r.text), bold: true, color: emphasis || 'accent' } : { text: tpl(r.text) };
+    }), { size: 28, font: 'heading', color: 'text', valign: 'bottom', role: 'title' }));
+    if (tagline) {
+      s.push(rect(M, 1.93, 0.05, 0.34, { fill: emphasis || 'accent' }));
+      s.push(text(M + 0.2, 1.93, CW - 0.2, 0.34, tpl(tagline), { size: 15, italic: true, color: 'muted', valign: 'middle' }));
+    }
+    return s;
+  }
+
+  function livePill(x, y, label) {
+    var l = caps(label || 'Live demo');
+    return text(x, y, pillW(l), 0.32, l, { size: 10.5, bold: true, fill: 'panel', color: 'onPanel', align: 'center', valign: 'middle', radius: 0.16 });
   }
 
   /* ---------- slides ---------- */
 
   function slideOpening(cfg, tpl) {
-    var o = cfg.opening, s = [];
-    s.push(text(M, 0.3, 9.5, 0.32, 'Presented by ' + cfg.presenters.presenterOne + ' and ' + cfg.presenters.presenterTwo + ', ' + cfg.brand.roleLabel,
-      { size: 13, color: 'muted', valign: 'middle' }));
-    s.push(text(M, 0.95, CW, 0.34, caps(tpl(cfg.brand.deckSubtitle)), { size: 13, bold: true, color: 'accent', valign: 'middle' }));
-    s.push(text(M, 1.3, CW, 0.85, tpl(cfg.brand.deckTitle), { size: 40, bold: true, font: 'heading', valign: 'middle', role: 'title' }));
-    s.push(rect(M, 2.25, 0.9, 0.06, { fill: 'accent' }));
-    s.push(text(M, 2.45, 11.6, 0.85, tpl(o.keyMessage), { size: 24, bold: true, color: 'text' }));
-    s.push(text(M, 3.3, 11.2, 0.65, tpl(o.supportingLine), { size: 18, color: 'muted' }));
+    var o = cfg.opening, s = [], px = 8.35;
+    // Left — identity
+    s.push(text(M, 1.5, 7.4, 0.34, caps(tpl(cfg.brand.deckSubtitle)), { size: 12, bold: true, color: 'accent', valign: 'middle' }));
+    s.push(text(M, 1.82, 7.4, 1.4, cfg.brand.toolName, { size: 80, bold: true, color: 'accent', font: 'heading', valign: 'middle' }));
+    s.push(text(M, 3.15, 7.4, 0.7, tpl(cfg.brand.deckTitle), { size: 30, bold: true, color: 'text', font: 'heading', valign: 'middle', role: 'title' }));
+    s.push(rect(M, 4.02, 0.8, 0.07, { fill: 'warning' }));
+    s.push(text(M, 4.3, 7.1, 1.0, tpl(o.keyMessage), { size: 20, color: 'secondary' }));
+    s.push(text(M, 6.05, 7.3, 0.62, [
+      { text: caps('Presented by'), size: 10.5, bold: true, color: 'muted', breakLine: true },
+      { text: cfg.presenters.presenterOne + '  ·  ' + cfg.presenters.presenterTwo + '  ·  ' + cfg.brand.roleLabel, bold: true }
+    ], { size: 15, color: 'text' }));
 
-    // Solution areas
-    s.push(text(M, 4.08, 2.0, 0.4, caps('Solution areas'), { size: 12, bold: true, color: 'muted', valign: 'middle' }));
-    var cx = M + 2.0;
-    o.solutionAreas.forEach(function (a) {
-      var label = a.focus ? a.label + ' · today’s focus' : a.label;
-      var w = a.focus ? 3.6 : 2.0;
-      s.push(text(cx, 4.08, w, 0.4, label, a.focus
-        ? { size: 15, bold: true, color: 'accent', fill: 'accentSoft', line: 'accent', lineW: 1, align: 'center', valign: 'middle' }
-        : { size: 15, color: 'muted', line: 'neutral', lineW: 1, align: 'center', valign: 'middle' }));
-      cx += w + 0.2;
-    });
-
-    // Operating modes — equal-weight cards
-    s.push(text(M, 4.72, 6, 0.3, caps(cfg.brand.toolName + ' operating modes'), { size: 12, bold: true, color: 'muted', valign: 'middle' }));
-    var gap = 0.25, cw = (CW - 2 * gap) / 3, y = 5.08, h = 1.6;
+    // Right — how the tool reviews, as a vertical flow on a navy panel
+    s.push(rect(px, 0, W - px, H, { fill: 'panel' }));
+    var cx = px + 0.55, tw = W - cx - 0.75;
+    s.push(text(cx, 1.0, tw + 0.5, 0.3, caps('How ' + cfg.brand.toolName + ' reviews'), { size: 11, bold: true, color: 'onPanelMuted', valign: 'middle' }));
+    s.push(text(cx, 1.32, tw + 0.5, 0.65, tpl(o.supportingLine), { size: 15, color: 'onPanel' }));
+    var ys = [2.35, 3.4, 4.45], d = 0.5;
+    s.push(line(cx + d / 2, ys[0] + d, 0, ys[2] - ys[0] - d, { color: 'onPanelMuted', width: 1.25 }));
     o.operatingModes.forEach(function (m, i) {
-      var x = M + i * (cw + gap);
-      s.push(rect(x, y, cw, h, { fill: 'surface' }));
-      s.push(rect(x, y, cw, 0.06, { fill: 'accent' }));
-      s.push(text(x + 0.25, y + 0.2, cw - 0.5, 0.4, tpl(m.title), { size: 20, bold: true, font: 'heading' }));
-      s.push(text(x + 0.25, y + 0.66, cw - 0.5, 0.85, tpl(m.text), { size: 17, color: 'secondary' }));
+      s.push.apply(s, numberDot(cx, ys[i], d, i + 1));
+      s.push(text(cx + 0.72, ys[i] - 0.06, tw, 0.36, tpl(m.title), { size: 17, bold: true, color: 'onPanel', valign: 'middle' }));
+      s.push(text(cx + 0.72, ys[i] + 0.3, tw, 0.32, tpl(m.text), { size: 13, color: 'onPanelMuted', valign: 'middle' }));
+    });
+    s.push(text(cx, 5.45, tw + 0.5, 0.3, caps('Solution areas'), { size: 11, bold: true, color: 'onPanelMuted', valign: 'middle' }));
+    o.solutionAreas.forEach(function (a, i) {
+      var y = 5.82 + i * 0.5;
+      s.push(text(cx, y, 3.75, 0.4, a.focus ? a.label + '  ·  today’s focus' : a.label, a.focus
+        ? { size: 13, bold: true, fill: 'accent', color: 'onAccent', align: 'center', valign: 'middle', radius: 0.2 }
+        : { size: 13, line: 'onPanelMuted', lineW: 1, color: 'onPanelMuted', align: 'center', valign: 'middle', radius: 0.2 }));
     });
     return s;
   }
 
   function slideUc1Problem(cfg, tpl) {
-    var u = cfg.useCaseOne, s = [];
-    s.push(kicker('Use case 1 · ' + ownerName(cfg, cfg.agenda[1].owner)));
-    s.push(title(tpl(u.titleProblem)));
-    s.push(text(M, 1.5, 8.35, 1.3, tpl(u.problemStatement), { size: 18 }));
-    // Review-cycle figure
-    s.push(rect(9.35, 1.5, 3.38, 1.3, { fill: 'surface' }));
-    s.push(text(9.6, 1.58, 2.9, 0.68, tpl(u.reviewCycleRange), { size: 40, bold: true, color: 'accent', font: 'heading', valign: 'middle' }));
-    s.push(text(9.6, 2.24, 2.9, 0.5, tpl(u.reviewCycleCaption), { size: 14, color: 'muted' }));
-
-    // Evidence chain
-    var n = u.artefactLabels.length, bw = 2.1, gap = (CW - n * bw) / (n - 1), by = 3.35, bh = 1.05, midY = by + bh / 2;
-    s.push(text(M, by - 0.42, 1.9, 0.3, caps(tpl(u.changeTag)), { size: 11, bold: true, fill: 'accent', color: 'onAccent', align: 'center', valign: 'middle' }));
+    var u = cfg.useCaseOne, s = header(cfg, tpl, 1, u.sectionProblem, u.headlineProblem, u.tagline, 'warning');
+    var n = u.artefacts.length, bw = 2.15, gap = (CW - n * bw) / (n - 1), by = 2.6, bh = 1.0, midY = by + bh / 2;
     var gaps = {};
     u.issueLabels.forEach(function (g) { gaps[g.afterArtefact] = g; });
+    function bx(i) { return M + i * (bw + gap); }
     for (var i = 0; i < n; i++) {
-      var x = M + i * (bw + gap);
-      s.push(text(x, by, bw, bh, tpl(u.artefactLabels[i]), {
-        size: 16, bold: true, align: 'center', valign: 'middle', fill: 'background',
-        line: i === 0 ? 'accent' : 'text', lineW: i === 0 ? 2.25 : 1, margin: 6
-      }));
+      var a = u.artefacts[i];
+      s.push(text(bx(i), by, bw, bh, [
+        { text: caps(tpl(a.eyebrow)), size: 10.5, color: 'accent', breakLine: true },
+        { text: tpl(a.name), size: 15 }
+      ], { bold: true, align: 'center', valign: 'middle', fill: 'background', line: i === 0 ? 'accent' : 'accentLine', lineW: i === 0 ? 2 : 1.25, radius: R, margin: 5 }));
       if (i < n - 1) {
-        var lx = x + bw, g = gaps[i];
-        s.push(line(lx, midY, gap, 0, g
-          ? { color: 'warning', width: 1.75, dash: 'dash' }
-          : { color: 'neutral', width: 1.75, arrow: true }));
+        var lx = bx(i) + bw, g = gaps[i];
         if (g) {
-          var cxm = lx + gap / 2, d = 0.36;
-          s.push(ellipse(cxm - d / 2, midY - d / 2, d, d, { fill: 'warningSoft', line: 'warning', lineW: 1.5 }));
-          s.push(text(cxm - d / 2, midY - d / 2, d, d, '!', { size: 15, bold: true, color: 'warning', align: 'center', valign: 'middle' }));
-          s.push(line(cxm, midY + d / 2, 0, 0.42, { color: 'warning', width: 1 }));
-          var tw = 2.7;
-          s.push(text(Math.min(Math.max(cxm - tw / 2, M), W - M - tw), by + bh + 0.32, tw, 0.62,
-            [{ text: 'Gap: ', bold: true }, { text: tpl(g.text) }], { size: 15, color: 'warning', align: 'center', fill: 'warningSoft' }));
+          s.push(line(lx, midY, gap, 0, { color: 'warning', width: 1.75, dash: 'dash' }));
+          var cxm = lx + gap / 2, dd = 0.3;
+          s.push(ellipse(cxm - dd / 2, midY - dd / 2, dd, dd, { fill: 'warning' }));
+          s.push(text(cxm - dd / 2, midY - dd / 2, dd, dd, '!', { size: 13, bold: true, color: 'onAccent', align: 'center', valign: 'middle' }));
+          var tw = 2.3;
+          s.push(text(cxm - tw / 2, by + bh + 0.14, tw, 0.4, tpl(g.text), { size: 11, bold: true, color: 'warning', fill: 'warningSoft', align: 'center', valign: 'middle', radius: 0.18 }));
+        } else {
+          s.push(line(lx + 0.03, midY, gap - 0.06, 0, { color: 'accent', width: 1.75, arrow: true }));
         }
       }
     }
+    // Return-to-author loop (red)
+    var x0 = bx(0) + bw / 2, x4 = bx(n - 1) + bw / 2, ly = 4.42;
+    s.push(line(x4, by + bh, 0, ly - by - bh, { color: 'warning', width: 1.75 }));
+    s.push(line(x0, ly, x4 - x0, 0, { color: 'warning', width: 1.75 }));
+    s.push(line(x0, by + bh + 0.02, 0, ly - by - bh - 0.02, { color: 'warning', width: 1.75, arrowStart: true }));
+    var loop = tpl(u.loopLabel).replace('{cycles}', tpl(u.reviewCycleRange));
+    s.push(text(W / 2 - 2.9, ly - 0.2, 5.8, 0.4, loop, { size: 14, bold: true, color: 'warning', fill: 'background', align: 'center', valign: 'middle' }));
 
-    // Takeaway
-    s.push(rect(M, 5.5, 0.08, 0.55, { fill: 'accent' }));
-    s.push(text(M + 0.28, 5.5, CW - 0.28, 0.55, tpl(u.keyTakeaway), { size: 24, bold: true, font: 'heading', valign: 'middle' }));
-
-    // Subtle source labels
-    var sl = cfg.systemLabels, roles = cfg.systemLabelRoles || {};
-    var runs = [{ text: 'Evidence sources:  ', bold: true }];
-    Object.keys(sl).forEach(function (k, idx) {
-      runs.push({ text: (idx ? '  ·  ' : '') + tpl(sl[k]) + (roles[k] ? ' (' + tpl(roles[k]) + ')' : '') });
+    // Three impact cards
+    var cg = 0.3, cw = (CW - 2 * cg) / 3, cy = 4.98, ch = 1.62;
+    u.problemCards.forEach(function (c, k) {
+      var x = M + k * (cw + cg);
+      s.push(rect(x, cy, cw, ch, { fill: 'surface', radius: R }));
+      s.push(rect(x + 0.18, cy + 0.24, 0.06, ch - 0.48, { fill: 'warning' }));
+      s.push(text(x + 0.42, cy + 0.2, cw - 0.6, 0.42, tpl(c.title), { size: 18, bold: true, font: 'heading', valign: 'middle' }));
+      s.push(text(x + 0.42, cy + 0.66, cw - 0.6, ch - 0.8, tpl(c.text), { size: 14, color: 'muted' }));
     });
-    s.push(text(M, 6.22, CW, 0.55, runs, { size: 13, color: 'muted' }));
     return s;
   }
 
   function slideUc1Approach(cfg, tpl) {
-    var u = cfg.useCaseOne, s = [];
-    s.push(kicker('Use case 1 · ' + ownerName(cfg, cfg.agenda[2].owner)));
-    s.push(title(tpl(u.titleApproach)));
-    var cols = [[u.currentState, 'current'], [u.futureState, 'future'], [u.outcome, 'outcome']];
-    var gap = 0.34, cw = (CW - 2 * gap) / 3, ty = 1.5, cy = 1.92, ch = 3.1;
-    cols.forEach(function (c, i) {
-      var d = c[0], kind = c[1], x = M + i * (cw + gap);
-      s.push(statusTag(x, ty, 2.7, tpl(d.tag), kind));
-      s.push(statusCard(x, cy, cw, ch, kind));
-      s.push(text(x + 0.25, cy + 0.18, cw - 0.5, 0.7, tpl(d.title), { size: 19, bold: true, font: 'heading' }));
-      s.push(text(x + 0.25, cy + 0.95, cw - 0.5, ch - 1.05, tpl(d.text), { size: 17, color: 'secondary' }));
-      if (i < cols.length - 1) s.push(line(x + cw + 0.04, cy + ch / 2, gap - 0.08, 0, { color: 'accent', width: 1.75, arrow: true }));
+    var u = cfg.useCaseOne, s = header(cfg, tpl, 2, u.sectionApproach, u.headlineApproach, u.taglineApproach);
+    var lh = 1.28, lys = [2.45, 3.86], sx = 3.0, sw = 2.7, sg = (W - M - 0.2 - sx - 3 * sw) / 2;
+    u.lanes.forEach(function (lane, li) {
+      var y = lys[li], fut = lane.future;
+      s.push(rect(M, y, CW, lh, fut ? { fill: 'background', line: 'accentLine', lineW: 1.25, dash: 'dash', radius: R } : { fill: 'surface', radius: R }));
+      var tag = tpl(lane.tag).split(' · ');
+      s.push(text(M + 0.3, y, 2.1, lh, [
+        { text: caps(tag[0]), size: 18, bold: true, color: fut ? 'secondary' : 'accent', breakLine: tag.length > 1 },
+        { text: tag.slice(1).join(' · '), size: 12, color: 'muted' }
+      ], { valign: 'middle' }));
+      lane.steps.forEach(function (st, k) {
+        var x = sx + k * (sw + sg), yb = y + 0.18, hb = lh - 0.36;
+        var hl = !!st.highlight;
+        s.push(text(x, yb, sw, hb, [
+          { text: caps(tpl(st.role)), size: 10.5, bold: true, color: hl ? 'onPanelMuted' : 'accent', breakLine: true },
+          { text: tpl(st.text), size: 15, bold: true, color: hl ? 'onAccent' : 'text' }
+        ], hl
+          ? { fill: 'accent', align: 'center', valign: 'middle', radius: R, margin: 4 }
+          : { fill: 'background', line: fut ? 'secondary' : 'neutral', lineW: 1, dash: fut, align: 'center', valign: 'middle', radius: R, margin: 4 }));
+        if (k < lane.steps.length - 1) s.push(line(x + sw + 0.06, y + lh / 2, sg - 0.12, 0, { color: 'accent', width: 1.75, arrow: true }));
+      });
     });
-    // Target statement (configurable, explicitly a target)
-    var target = tpl(u.targetStatement).replace('{current}', tpl(u.reviewCycleRange)).replace('{target}', tpl(u.targetReviewCycles));
-    s.push(rect(M, 5.12, 0.08, 0.6, { fill: 'accent' }));
-    s.push(text(M + 0.28, 5.12, CW - 0.28, 0.6, [
-      { text: target, bold: true, breakLine: true },
-      { text: tpl(u.targetCaveat), italic: true, color: 'muted', size: 13 }
-    ], { size: 17, valign: 'middle' }));
-    s.push.apply(s, demoBand(5.82, 'Live demo · one end-to-end scenario', u.demoSteps, tpl, { chipH: 0.56, size: 15 }));
+
+    // Target KPI
+    var ky = 5.36;
+    s.push(text(M, ky, 4.4, 0.3, caps(tpl(u.targetLabel)), { size: 10.5, bold: true, color: 'muted', valign: 'middle' }));
+    s.push(text(M, ky + 0.3, 4.4, 0.7, [
+      { text: tpl(u.reviewCycleRange), color: 'muted' },
+      { text: '  →  ', color: 'muted' },
+      { text: tpl(u.targetReviewCycles), color: 'accent' }
+    ], { size: 32, bold: true, font: 'heading', valign: 'middle' }));
+    s.push(text(M, ky + 1.0, 4.4, 0.3, tpl(u.targetCaveat), { size: 11.5, italic: true, color: 'muted', valign: 'middle' }));
+
+    // Demo stepper
+    var dx = 5.5, dx2 = W - M - 0.5, dy = 5.95, n = u.demoSteps.length, step = (dx2 - dx) / (n - 1), d = 0.4;
+    s.push(livePill(dx - 0.2, ky, 'Live demo · one scenario'));
+    s.push(line(dx, dy, dx2 - dx, 0, { color: 'accentLine', width: 2 }));
+    u.demoSteps.forEach(function (st, k) {
+      var cx = dx + k * step;
+      s.push.apply(s, numberDot(cx - d / 2, dy - d / 2, d, k + 1));
+      s.push(text(cx - 0.85, dy + 0.3, 1.7, 0.4, tpl(st.short), { size: 12, bold: true, align: 'center' }));
+    });
     return s;
   }
 
   function slideUc2Problem(cfg, tpl) {
-    var u = cfg.useCaseTwo, s = [];
-    s.push(kicker('Use case 2 · ' + ownerName(cfg, cfg.agenda[3].owner)));
-    s.push(title(tpl(u.titleProblem)));
-    s.push(text(M, 1.45, CW, 0.92, tpl(u.problemStatement), { size: 18 }));
-    s.push(statusTag(M, 2.48, 1.7, tpl(u.currentUseTag), 'current'));
-    s.push(text(M + 1.85, 2.46, CW - 1.85, 0.74, [
-      { text: tpl(u.currentUseText), color: 'secondary', breakLine: true },
-      { text: tpl(u.sourceNote), color: 'muted', size: 14 }
-    ], { size: 15 }));
+    var u = cfg.useCaseTwo, s = header(cfg, tpl, 3, u.sectionProblem, u.headlineProblem, u.tagline);
+    // "Room to change narrows" — risk signal in red
+    s.push(text(M, 2.42, CW, 0.28, tpl(u.changeArrowLabel), { size: 11.5, italic: true, bold: true, color: 'warning', align: 'right', valign: 'middle' }));
+    s.push(line(M, 2.78, CW, 0, { color: 'warning', width: 1.25, arrow: true }));
 
-    // Timeline
-    var ly = 3.58, xs = [1.95, 4.85, 7.75, 10.65];
-    s.push(line(M, ly, CW, 0, { color: 'neutral', width: 2, arrow: true }));
+    var n = u.lifecycleLabels.length, g = 0.12, pw = (CW - (n - 1) * g) / n, py = 2.98, ph = 0.6;
     var hl = {};
     u.checkpointLabels.forEach(function (c, i) { hl[c.stage] = i + 1; });
+    function px(i) { return M + i * (pw + g); }
     u.lifecycleLabels.forEach(function (lab, i) {
-      var cx = xs[i] !== undefined ? xs[i] : M + (i + 0.5) * CW / u.lifecycleLabels.length;
-      if (hl[i]) s.push.apply(s, numberDot(cx - 0.25, ly - 0.25, 0.5, hl[i]));
-      else s.push(ellipse(cx - 0.13, ly - 0.13, 0.26, 0.26, { fill: 'background', line: 'neutral', lineW: 2 }));
-      s.push(text(cx - 1.35, ly + 0.36, 2.7, 0.5, tpl(lab), { size: 14, bold: !!hl[i], color: hl[i] ? 'text' : 'muted', align: 'center' }));
+      var on = hl[i];
+      s.push(text(px(i), py, pw, ph, on ? [{ text: on + '   ', color: 'onPanelMuted' }, { text: tpl(lab) }] : tpl(lab),
+        on ? { size: 16, bold: true, fill: 'accent', color: 'onAccent', align: 'center', valign: 'middle', radius: 0.3 }
+           : { size: 15, fill: 'surface', color: 'muted', align: 'center', valign: 'middle', radius: 0.3 }));
     });
-
-    // Checkpoint cards
-    var gap = 0.33, cw = (CW - gap) / 2, cy = 4.52, ch = 2.28;
-    u.checkpointLabels.forEach(function (c, i) {
-      var x = M + i * (cw + gap);
-      s.push(rect(x, cy, cw, ch, { fill: 'background', line: 'accent', lineW: 1 }));
-      s.push.apply(s, numberDot(x + 0.22, cy + 0.2, 0.42, i + 1));
-      s.push(text(x + 0.8, cy + 0.14, cw - 1.0, 0.6, [
-        { text: tpl(c.title), bold: true, breakLine: true },
-        { text: caps(tpl(c.when)), size: 11, bold: true, color: 'muted' }
-      ], { size: 18, font: 'heading' }));
-      s.push(text(x + 0.25, cy + 0.82, cw - 0.5, 0.92, tpl(c.question), { size: 18 }));
-      s.push(text(x + 0.25, cy + 1.74, cw - 0.5, 0.52, [{ text: 'Value: ', bold: true }, { text: tpl(c.value) }], { size: 14, color: 'accent' }));
+    // Checkpoint cards hang from their stage
+    var cy = 4.0, ch = 1.88, cw = 2 * pw + g;
+    u.checkpointLabels.forEach(function (c) {
+      var x = px(c.stage);
+      s.push(line(x + pw / 2, py + ph, 0, cy - py - ph, { color: 'accent', width: 1.75 }));
+      s.push(rect(x, cy, cw, ch, { fill: 'background', line: 'accentLine', lineW: 1.25, radius: R }));
+      s.push(text(x + 0.3, cy + 0.2, cw - 0.6, 0.3, caps(tpl(c.when)), { size: 10.5, bold: true, color: 'accent', valign: 'middle' }));
+      s.push(text(x + 0.3, cy + 0.52, cw - 0.6, 0.8, tpl(c.question), { size: 19, bold: true, font: 'heading' }));
+      s.push(text(x + 0.3, cy + 1.36, cw - 0.6, 0.36, [
+        { text: caps('Catches') + '   ', bold: true, color: 'warning', size: 10.5 },
+        { text: tpl(c.value) }
+      ], { size: 14, color: 'muted', valign: 'middle' }));
     });
-    // Code review is out of scope for this use case; shown only when configured.
+    // Sources
+    var sy = 6.18;
+    s.push(text(M, sy, 1.9, 0.42, caps(tpl(u.sourcesLabel)), { size: 10.5, bold: true, color: 'muted', valign: 'middle' }));
+    var sxs = M + 1.9, sw = (W - M - sxs - 0.12 * (u.sources.length - 1)) / u.sources.length;
+    u.sources.forEach(function (src, k) {
+      s.push(text(sxs + k * (sw + 0.12), sy, sw, 0.42, tpl(src), { size: 13, fill: 'surface', color: 'secondary', align: 'center', valign: 'middle', radius: 0.21 }));
+    });
     if (u.codeReviewStatus && u.codeReviewStatus.showOnSlide) {
-      s.push(text(M, 1.22, CW, 0.22, 'Scope note: ' + tpl(u.codeReviewStatus.text), { size: 11, italic: true, color: 'muted', align: 'right', valign: 'middle' }));
+      s.push(text(M, 6.66, CW, 0.22, 'Scope note: ' + tpl(u.codeReviewStatus.text), { size: 10, italic: true, color: 'muted', align: 'right', valign: 'middle' }));
     }
     return s;
   }
 
   function slideUc2Approach(cfg, tpl) {
-    var u = cfg.useCaseTwo, s = [];
-    s.push(kicker('Use case 2 · ' + ownerName(cfg, cfg.agenda[4].owner)));
-    s.push(title(tpl(u.titleApproach)));
-    s.push(statusTag(M, 1.47, 1.7, 'Current use', 'current'));
-    s.push(text(M + 1.85, 1.43, CW - 1.85, 0.4, tpl(u.approachSubtitle), { size: 18, color: 'secondary', valign: 'middle' }));
-
-    var bx = M, by = 2.05, bw = 6.95, bh = 3.15;
-    s.push(rect(bx, by, bw, bh, { fill: 'surface' }));
-    s.push(text(bx + 0.25, by + 0.12, bw - 0.5, 0.36, caps('Configured quality setup · defined once by QEs'), { size: 12, bold: true, color: 'muted', valign: 'middle' }));
-    u.reusableSetup.forEach(function (r, i) {
-      var ry = by + 0.6 + i * 0.83;
-      s.push(text(bx + 0.25, ry, 1.75, 0.68, tpl(r.mode), { size: 16, bold: true, fill: 'background', line: 'accent', lineW: 1.25, align: 'center', valign: 'middle', color: 'accent' }));
-      s.push(text(bx + 2.2, ry, bw - 2.4, 0.68, tpl(r.text), { size: 17, valign: 'middle' }));
+    var u = cfg.useCaseTwo, s = header(cfg, tpl, 4, u.sectionApproach, u.headlineApproach, u.taglineApproach);
+    var top = 2.55;
+    // Inputs
+    s.push(text(M, top, 2.5, 0.3, caps('Connected sources'), { size: 10.5, bold: true, color: 'muted', valign: 'middle' }));
+    var hubX = 3.65, hubW = 5.1, hubY = top, hubH = 3.0, chipW = 2.4;
+    u.sources.forEach(function (src, k) {
+      var y = top + 0.45 + k * 0.64;
+      s.push(text(M, y, chipW, 0.48, tpl(src), { size: 13.5, fill: 'surface', color: 'secondary', align: 'center', valign: 'middle', radius: R }));
+      s.push(line(M + chipW + 0.05, y + 0.24, hubX - M - chipW - 0.1, 0, { color: 'accentLine', width: 1.5, arrow: true }));
     });
-
-    var rx = 8.4, rw = W - M - rx, rh = 1.4, ys = [by, by + bh - rh];
+    // Hub
+    s.push(rect(hubX, hubY, hubW, hubH, { fill: 'panel', radius: 0.14 }));
+    s.push(text(hubX + 0.35, hubY + 0.2, hubW - 0.7, 0.62, [
+      { text: caps(tpl(u.hubTitle)), size: 10.5, color: 'onPanelMuted', breakLine: true },
+      { text: 'Configured once by QEs', size: 19 }
+    ], { bold: true, color: 'onPanel' }));
+    u.reusableSetup.forEach(function (r, k) {
+      var y = hubY + 1.0 + k * 0.64;
+      s.push(text(hubX + 0.35, y, 1.55, 0.48, tpl(r.mode), { size: 13, bold: true, fill: 'accent', color: 'onAccent', align: 'center', valign: 'middle', radius: 0.24 }));
+      s.push(text(hubX + 2.05, y, hubW - 2.3, 0.48, tpl(r.text), { size: 14, color: 'onPanel', valign: 'middle' }));
+    });
+    // Outputs
+    var ox = 9.5, ow = W - M - ox, oh = 1.3, oys = [hubY + 0.05, hubY + hubH - oh - 0.05];
     u.checkpointLabels.forEach(function (c, i) {
-      var ry = ys[i];
-      s.push(rect(rx, ry, rw, rh, { fill: 'background', line: 'accent', lineW: 1 }));
-      s.push.apply(s, numberDot(rx + 0.2, ry + 0.2, 0.42, i + 1));
-      var tparts = tpl(c.title).split(' · ');
-      s.push(text(rx + 0.75, ry + 0.12, rw - 0.9, 0.56, tparts.length > 1
-        ? [{ text: caps(tparts[0]), size: 11, color: 'muted', breakLine: true }, { text: tparts.slice(1).join(' · ') }]
-        : tpl(c.title), { size: 17, bold: true, font: 'heading', valign: 'middle' }));
-      s.push(text(rx + 0.25, ry + 0.76, rw - 0.4, 0.58, tpl(u.checkpointApplies[i] || ''), { size: 15, color: 'secondary' }));
-      s.push(line(bx + bw, ry + rh / 2, rx - bx - bw, 0, { color: 'accent', width: 1.75, arrow: true }));
+      var y = oys[i];
+      s.push(line(hubX + hubW + 0.05, y + oh / 2, ox - hubX - hubW - 0.1, 0, { color: 'accent', width: 1.75, arrow: true }));
+      s.push(rect(ox, y, ow, oh, { fill: 'background', line: 'accentLine', lineW: 1.25, radius: R }));
+      s.push.apply(s, numberDot(ox + 0.22, y + 0.24, 0.44, i + 1));
+      s.push(text(ox + 0.8, y + 0.2, ow - 0.95, 0.5, tpl(c.title), { size: 18, bold: true, font: 'heading', valign: 'middle' }));
+      s.push(text(ox + 0.22, y + 0.72, ow - 0.35, 0.52, tpl(u.checkpointApplies[i] || ''), { size: 12.5, color: 'muted', valign: 'middle' }));
     });
-    s.push(text(bx + bw + 0.05, by + bh / 2 - 0.3, rx - bx - bw - 0.1, 0.6, 'Same checks, reused', { size: 12, color: 'muted', align: 'center', valign: 'middle', italic: true }));
-
-    s.push.apply(s, demoBand(5.4, 'Live demo · two rapid checkpoints', u.demoSteps, tpl, { chipH: 0.92, size: 15, withDetail: true }));
+    // Demo
+    var dy = 5.9;
+    s.push(livePill(M, dy + 0.12, 'Live demo'));
+    var dx = M + 1.55, dw = (W - M - dx - 0.2) / 2;
+    u.demoSteps.forEach(function (st, k) {
+      var x = dx + k * (dw + 0.2);
+      s.push(text(x, dy, dw, 0.56, [
+        { text: (k + 1) + '   ', bold: true, color: 'accent' },
+        { text: tpl(st.short), bold: true },
+        { text: '  ·  ' + tpl(u.checkpointApplies[k] || ''), color: 'muted' }
+      ], { size: 14, fill: 'surface', valign: 'middle', radius: 0.28, margin: [0, 14, 0, 14] }));
+    });
     return s;
   }
 
   function slideValue(cfg, tpl) {
-    var v = cfg.value, s = [];
-    s.push(kicker('Combined value · ' + ownerName(cfg, cfg.agenda[5].owner)));
-    s.push(title(tpl(v.title)));
-    var gap = 0.3, cw = (CW - 2 * gap) / 3, ty = 1.5, cy = 1.92, ch = 3.1;
-    v.pillars.forEach(function (p, i) {
-      var kind = p.future ? 'future' : (i === 0 ? 'current' : 'outcome');
-      var x = M + i * (cw + gap);
-      s.push(statusTag(x, ty, 2.7, tpl(p.tag), kind));
-      s.push(statusCard(x, cy, cw, ch, kind));
-      s.push(text(x + 0.25, cy + 0.18, 0.6, 0.35, String(i + 1).padStart(2, '0'), { size: 15, bold: true, color: 'accent' }));
-      s.push(text(x + 0.25, cy + 0.5, cw - 0.5, 0.7, tpl(p.title), { size: 20, bold: true, font: 'heading' }));
-      s.push(text(x + 0.25, cy + 1.22, cw - 0.5, ch - 1.32, tpl(p.text), { size: 17, color: 'secondary' }));
+    var v = cfg.value, s = header(cfg, tpl, 5, v.section, v.headline, null);
+    var top = 2.2, fx = M, fw = 4.55, ax = fx + fw, aw = 0.75, tx = ax + aw, tw = 4.9, px = tx + tw + 0.25, pw = W - M - px;
+    s.push(text(fx, top, fw, 0.3, caps('From'), { size: 10.5, bold: true, color: 'muted', valign: 'middle' }));
+    s.push(text(tx, top, tw, 0.3, caps('To'), { size: 10.5, bold: true, color: 'accent', valign: 'middle' }));
+    v.shifts.forEach(function (r, i) {
+      var y = top + 0.42 + i * 1.0, h = 0.82;
+      s.push(text(fx, y, fw, h, tpl(r.from), { size: 16, color: 'muted', fill: 'surface', valign: 'middle', radius: R, margin: [0, 18, 0, 18] }));
+      s.push(line(ax + 0.12, y + h / 2, aw - 0.24, 0, { color: 'accent', width: 2, arrow: true }));
+      s.push(text(tx, y, tw, h, tpl(r.to), r.kind === 'future'
+        ? { size: 17, bold: true, color: 'text', fill: 'background', line: 'secondary', lineW: 1.25, dash: 'dash', valign: 'middle', radius: R, margin: [0, 18, 0, 18] }
+        : { size: 17, bold: true, color: 'text', fill: 'accentSoft', line: 'accent', lineW: 1.25, valign: 'middle', radius: R, margin: [0, 18, 0, 18] }));
+      s.push(statusPill(px, y + h / 2 - 0.16, pw, tpl(r.tag), r.kind));
     });
-    s.push(text(M, 5.1, CW, 0.38, [{ text: 'Quality caveat: ', bold: true }, { text: tpl(v.caveat), italic: true }], { size: 16, color: 'muted', valign: 'middle' }));
-    s.push(rect(M, 5.58, CW, 1.08, { fill: 'accentSoft' }));
-    s.push(rect(M, 5.58, 0.08, 1.08, { fill: 'accent' }));
-    s.push(text(M + 0.35, 5.58, CW - 0.6, 1.08, tpl(v.bottomLine), { size: 22, bold: true, font: 'heading', valign: 'middle' }));
+    s.push(text(M, 5.64, CW, 0.3, [{ text: 'Quality caveat:  ', bold: true }, { text: tpl(v.caveat), italic: true }], { size: 13, color: 'muted', valign: 'middle' }));
+    s.push(rect(M, 6.02, CW, 0.74, { fill: 'panel', radius: R }));
+    s.push(rect(M + 0.25, 6.2, 0.06, 0.38, { fill: 'warning' }));
+    s.push(text(M + 0.5, 6.02, CW - 0.8, 0.74, tpl(v.bottomLine), { size: 17, bold: true, color: 'onPanel', valign: 'middle' }));
     return s;
   }
 
   function slideSavings(cfg, tpl, state, calc) {
-    var sv = cfg.savings, L = sv.labels, s = [];
+    var sv = cfg.savings, L = sv.labels;
+    var s = header(cfg, tpl, 6, sv.section, sv.headline, sv.showIllustrativeTag ? tpl(sv.illustrativeTag) + ' · adjust the assumptions live' : null);
     var inp = calc.resolveInputs(sv, state.releaseId, state.userId, state.overrides);
     var r = calc.calculateCapacity(inp);
     var fmt = calc.fmt;
 
-    s.push(kicker('QE capacity · ' + ownerName(cfg, cfg.agenda[6].owner)));
-    s.push(title(tpl(sv.title)));
-
     // Left — assumptions
-    var px = M, py = 1.45, pw = 4.2, ph = 3.98;
-    s.push(rect(px, py, pw, ph, { fill: 'surface' }));
-    s.push(text(px + 0.2, py + 0.1, pw - 0.4, 0.34, caps('Assumptions'), { size: 12, bold: true, color: 'muted', valign: 'middle' }));
-    if (sv.showIllustrativeTag) {
-      s.push(text(px + 0.2, py + 0.46, pw - 0.4, 0.28, caps(tpl(sv.illustrativeTag)), { size: 9, bold: true, color: 'secondary', line: 'secondary', lineW: 0.75, dash: 'dash', align: 'center', valign: 'middle' }));
-    }
+    var px = M, py = 2.45, pw = 3.95, ph = 3.3;
+    s.push(rect(px, py, pw, ph, { fill: 'surface', radius: R }));
+    s.push(text(px + 0.2, py + 0.08, pw - 0.4, 0.3, caps('Assumptions'), { size: 10.5, bold: true, color: 'muted', valign: 'middle' }));
     s.push({
-      type: 'inputs', x: px + 0.2, y: py + 0.86, w: pw - 0.4, h: ph - 0.96,
+      type: 'inputs', x: px + 0.2, y: py + 0.42, w: pw - 0.4, h: ph - 0.52,
       rows: [
         { key: 'releaseType', label: tpl(L.releaseType), kind: 'select', value: state.releaseId, display: inp.releaseType,
           options: sv.releaseScenarios.map(function (x) { return { value: x.id, label: tpl(x.releaseType) }; }) },
@@ -327,51 +350,48 @@
       ]
     });
 
-    // Centre — before → after
-    var cx = 5.1, cwid = 3.95;
-    s.push(text(cx, py + 0.1, cwid, 0.34, caps('Before → after · QE hours per release'), { size: 12, bold: true, color: 'muted', valign: 'middle' }));
+    // Centre — before → after bars
+    var cx = 4.9, cw = 3.9;
+    s.push(text(cx, py + 0.08, cw, 0.3, caps(tpl(L.barsTitle)), { size: 10.5, bold: true, color: 'muted', valign: 'middle' }));
     var cur = r.currentQeHoursPerRelease, aid = r.aidaAssistedQeHoursPerRelease;
-    var max = Math.max(cur || 0, aid || 0), barMax = 2.55;
+    var max = Math.max(cur || 0, aid || 0), bx = cx + 1.25, barMax = 1.75;
     function barW(v) { return v && max > 0 ? Math.max(0.05, barMax * Math.max(v, 0) / max) : 0.05; }
-    var bars = [[tpl(L.currentBar), cur, 'secondary'], [tpl(L.aidaBar), aid, 'accent']];
-    bars.forEach(function (b, i) {
-      var y0 = py + 0.62 + i * 1.18;
-      s.push(text(cx, y0, cwid, 0.34, b[0], { size: 15, color: 'text', valign: 'middle' }));
-      var bw = barW(b[1]);
-      s.push(rect(cx, y0 + 0.42, bw, 0.55, { fill: b[2] }));
-      s.push(text(cx + bw + 0.12, y0 + 0.42, 1.3, 0.55, fmt(b[1]) + ' h', { size: 20, bold: true, valign: 'middle', color: 'text' }));
+    [[tpl(L.currentBar), cur, 'secondary'], [tpl(L.aidaBar), aid, 'accent']].forEach(function (b, i) {
+      var y = py + 0.6 + i * 0.95, w = barW(b[1]);
+      s.push(text(cx, y, 1.2, 0.62, b[0], { size: 14, bold: true, color: 'text', valign: 'middle' }));
+      s.push(rect(bx, y, w, 0.62, { fill: b[2], radius: 0.06 }));
+      s.push(text(bx + w + 0.1, y, 1.0, 0.62, fmt(b[1]) + ' h', { size: 17, bold: true, valign: 'middle' }));
     });
-    s.push(line(cx, py + 3.05, cwid, 0, { color: 'neutral', width: 0.75 }));
-    s.push(text(cx, py + 3.12, cwid, 0.66, [
-      { text: 'Review cycles: ', bold: true },
-      { text: tpl(String(inp.baselineReviewCycles)) + ' → ' + tpl(String(inp.aidaTargetReviewCycles)), breakLine: true },
-      { text: tpl(L.cyclesTargetNote) + ' · eligible documents ' + fmt(r.eligibleDocuments), color: 'muted', size: 12 }
-    ], { size: 15 }));
+    s.push(line(cx, py + 2.4, cw, 0, { color: 'neutral', width: 0.75 }));
+    s.push(text(cx, py + 2.5, cw, 0.7, [
+      { text: caps('Review cycles'), size: 10.5, bold: true, color: 'muted', breakLine: true },
+      { text: tpl(String(inp.baselineReviewCycles)) + '  →  ', bold: true, color: 'muted' },
+      { text: tpl(String(inp.aidaTargetReviewCycles)), bold: true, color: 'accent' },
+      { text: '   ' + tpl(L.cyclesTargetNote), size: 11, italic: true, color: 'muted' }
+    ], { size: 17 }));
 
-    // Right — three results
-    var rx = 9.35, rw = W - M - rx, rh = ph / 3;
-    var results = [
-      [fmt(r.qeCapacityReleasedHours) + ' h', tpl(L.resultReleased)],
-      [r.qeCapacityReleasedPercent === null ? '—' : fmt(r.qeCapacityReleasedPercent, 0) + '%', tpl(L.resultPercent)],
-      [r.annualQeCapacityReleasedHours === null ? '—' : fmt(r.annualQeCapacityReleasedHours) + ' h', tpl(L.resultAnnual)]
-    ];
-    results.forEach(function (res, i) {
-      var y0 = py + i * rh;
-      if (i) s.push(line(rx, y0, rw, 0, { color: 'neutral', width: 0.75 }));
-      s.push(text(rx, y0 + 0.08, rw, 0.7, res[0], { size: 34, bold: true, color: 'accent', font: 'heading', valign: 'middle' }));
-      s.push(text(rx, y0 + 0.78, rw, 0.42, res[1], { size: 14, color: 'text' }));
+    // Right — KPIs (one hero, two supporting)
+    var rx = 9.1, rw = W - M - rx;
+    s.push(rect(rx, py, rw, 1.75, { fill: 'panel', radius: R }));
+    s.push(text(rx + 0.3, py + 0.15, rw - 0.6, 0.95, fmt(r.qeCapacityReleasedHours) + ' h', { size: 50, bold: true, color: 'onPanel', font: 'heading', valign: 'middle' }));
+    s.push(text(rx + 0.3, py + 1.1, rw - 0.6, 0.5, tpl(L.resultReleased), { size: 13.5, color: 'onPanelMuted', valign: 'middle' }));
+    var sw = (rw - 0.2) / 2;
+    [[r.qeCapacityReleasedPercent === null ? '—' : fmt(r.qeCapacityReleasedPercent, 0) + '%', tpl(L.resultPercent)],
+     [r.annualQeCapacityReleasedHours === null ? '—' : fmt(r.annualQeCapacityReleasedHours) + ' h', tpl(L.resultAnnual)]].forEach(function (k, i) {
+      var x = rx + i * (sw + 0.2), y = py + 1.95;
+      s.push(rect(x, y, sw, 1.35, { fill: 'accentSoft', radius: R }));
+      s.push(text(x + 0.2, y + 0.1, sw - 0.4, 0.66, k[0], { size: 28, bold: true, color: 'accent', font: 'heading', valign: 'middle' }));
+      s.push(text(x + 0.15, y + 0.74, sw - 0.3, 0.56, k[1], { size: 11, color: 'secondary' }));
     });
 
-    // Reinvestment band
-    s.push(rect(M, 5.54, CW, 0.64, { fill: 'accentSoft' }));
-    s.push(rect(M, 5.54, 0.08, 0.64, { fill: 'accent' }));
-    s.push(text(M + 0.3, 5.54, CW - 0.5, 0.64, [
-      { text: tpl(sv.reinvestmentLead) + '  ', bold: true },
-      { text: sv.reinvestmentItems.map(tpl).join('  ·  ') }
-    ], { size: 16, valign: 'middle' }));
-
-    // Disclaimer
-    s.push(text(M, 6.25, CW, 0.6, sv.disclaimerLines.map(tpl).join(' '), { size: 10, color: 'muted', valign: 'top' }));
+    // Reinvestment row
+    var ry = 5.95;
+    s.push(text(M, ry, 1.9, 0.42, caps(tpl(sv.reinvestmentLead)) + '  →', { size: 11, bold: true, color: 'accent', valign: 'middle' }));
+    var ix = M + 1.95, iw = (W - M - ix - 0.12 * (sv.reinvestmentItems.length - 1)) / sv.reinvestmentItems.length;
+    sv.reinvestmentItems.forEach(function (it, k) {
+      s.push(text(ix + k * (iw + 0.12), ry, iw, 0.42, tpl(it), { size: 12.5, bold: true, fill: 'accentSoft', color: 'text', align: 'center', valign: 'middle', radius: 0.21 }));
+    });
+    s.push(text(M, 6.47, CW, 0.38, sv.disclaimerLines.map(tpl).join(' '), { size: 8.5, color: 'muted', valign: 'middle' }));
     return { primitives: s, inputs: inp, results: r };
   }
 
@@ -379,17 +399,20 @@
   function notesFor(cfg, tpl, i) {
     var a = cfg.agenda[i], who = ownerName(cfg, a.owner);
     var head = 'Presenter: ' + who + ' · Time guide: ' + a.time + '\n\n';
-    var u1 = cfg.useCaseOne, u2 = cfg.useCaseTwo;
+    var u1 = cfg.useCaseOne, u2 = cfg.useCaseTwo, v = cfg.value;
     var body = [
-      'Open with the proposition: ' + tpl(cfg.opening.keyMessage) + '\nFocus today: Document Reviews and connected source evidence. Data Insights is out of scope unless relevant to a demo.',
-      'Problem: ' + tpl(u1.problemStatement) + '\n\nEvidence relationship: ' + tpl(u1.evidenceRelationship) + '\n\nTypical review failure points:\n- ' + u1.failurePoints.map(tpl).join('\n- '),
-      'Current state is in use today; author-initiated pre-review is a future / adoption model. Do not claim a guaranteed cycle reduction.\n\nDEMO (one focused scenario):\n' +
+      tpl(cfg.opening.notes),
+      'Problem: ' + tpl(u1.problemStatement) + '\n\nAverage document: ' + tpl(u1.reviewCycleRange) + ' review cycles (configure actual value).\n\nEvidence relationship: ' + tpl(u1.evidenceRelationship) + '\n\nTypical review failure points:\n- ' + u1.failurePoints.map(tpl).join('\n- '),
+      'Current state: ' + tpl(u1.currentStateNote) + '\nFuture: ' + tpl(u1.futureStateNote) + '\nOutcome: ' + tpl(u1.outcomeNote) +
+        '\nDo not claim a guaranteed cycle reduction.\n\nDEMO (one focused scenario):\n' +
         u1.demoSteps.map(function (d, k) { return (k + 1) + '. ' + tpl(d.detail); }).join('\n') +
         '\n\nHANDOVER to ' + cfg.presenters.presenterTwo + ': “' + tpl(cfg.speakerNotes.handoverAfterSlide3) + '”',
-      'Positioning: source-driven lifecycle quality assurance — not “review without documents”; a test protocol or design artefact can still be an input. This is already in QE use at multiple stages.\n\nBoundary: ' + tpl(u2.codeReviewStatus.text) + ' Only mention if asked.',
-      'DEMO (two rapid checkpoints, not a feature tour):\n' + u2.demoSteps.map(function (d, k) { return (k + 1) + '. ' + tpl(d.short) + ': ' + tpl(d.detail); }).join('\n'),
-      'Use “full-population, evidence-based review” or “100% coverage of applicable, configured checks”. Never say “100% sampling” or imply 100% assurance.\nPillar 2 is a future / adoption model where not yet deployed.',
-      'Use “QE capacity released”, not “time saved”: capacity is reinvested, not removed. Figures are configurable assumptions and targets, not guarantees, and not a headcount-reduction claim. Human QE review of outputs remains necessary.'
+      'Problem: ' + tpl(u2.problemStatement) + '\n\n' + u2.checkpointNotes.map(tpl).join('\n\n') +
+        '\n\nPositioning: source-driven lifecycle quality assurance, not “review without documents”; a test protocol or design artefact can still be an input. Already in QE use at multiple stages.\n\nBoundary: ' + tpl(u2.codeReviewStatus.text) + ' Only mention if asked.',
+      'Reusable setup: LLM-based (requirement quality, content context, INCOSE-aligned review); Hybrid (contextual assessment plus deterministic validation); Script-based (link coverage, mapping, completeness, traceability).\n\nDEMO (two rapid checkpoints, not a feature tour):\n' +
+        u2.demoSteps.map(function (d, k) { return (k + 1) + '. ' + tpl(d.short) + ': ' + tpl(d.detail); }).join('\n'),
+      v.pillarNotes.map(tpl).join('\n\n') + '\n\nUse “full-population, evidence-based review” or “100% coverage of applicable, configured checks”. Never say “100% sampling” or imply 100% assurance.',
+      'Use “QE capacity released”, not “time saved”: capacity is reinvested, not removed. Figures are configurable assumptions and targets, not guarantees.\n\nDisclaimer: ' + cfg.savings.disclaimerLines.map(tpl).join(' ')
     ][i];
     return head + body;
   }
@@ -397,9 +420,10 @@
   /* ---------- deck ---------- */
   function buildDeck(cfg, state, calc) {
     var tpl = makeTpl(cfg);
+    if (cfg.theme.diagramStyle && cfg.theme.diagramStyle.cardRadius !== undefined) R = cfg.theme.diagramStyle.cardRadius;
     var sav = slideSavings(cfg, tpl, state, calc);
     var slides = [
-      { id: 'opening', primitives: slideOpening(cfg, tpl), title: tpl(cfg.brand.deckTitle) },
+      { id: 'opening', variant: 'title', primitives: slideOpening(cfg, tpl), title: cfg.brand.toolName + ': ' + tpl(cfg.brand.deckTitle) },
       { id: 'uc1-problem', primitives: slideUc1Problem(cfg, tpl), title: tpl(cfg.useCaseOne.titleProblem) },
       { id: 'uc1-approach', primitives: slideUc1Approach(cfg, tpl), title: tpl(cfg.useCaseOne.titleApproach) },
       { id: 'uc2-problem', primitives: slideUc2Problem(cfg, tpl), title: tpl(cfg.useCaseTwo.titleProblem) },
@@ -415,14 +439,18 @@
     return slides;
   }
 
-  /* Master-slide chrome shared by every slide: footer rule, footer text, logo. */
-  function chrome(cfg) {
-    var tpl = makeTpl(cfg), ls = cfg.theme.logoStyle;
+  /* Master-slide chrome. The title variant shows only the logo. */
+  function chrome(cfg, variant) {
+    var tpl = makeTpl(cfg), ls = cfg.theme.logoStyle, title = variant === 'title';
     return {
+      footer: !title,
       footerRule: rect(M, LAYOUT.footerRuleY, CW, 0.012, { fill: 'neutral' }),
       footerText: text(M, LAYOUT.footerY, 9, 0.3, tpl(cfg.brand.footerText), { size: 10, color: 'muted', valign: 'middle' }),
       slideNumber: { x: W - M - 1.0, y: LAYOUT.footerY, w: 1.0, h: 0.3, size: 10, color: 'muted' },
-      logo: { x: ls.x, y: ls.y - 0.1, w: ls.w, h: ls.h, dashed: ls.dashed, text: cfg.brand.logoPlaceholder.text, imagePath: cfg.brand.logoPlaceholder.imagePath }
+      logo: {
+        x: title ? M : ls.x, y: title ? 0.5 : ls.y - 0.1, w: ls.w, h: ls.h, dashed: ls.dashed,
+        text: cfg.brand.logoPlaceholder.text, imagePath: cfg.brand.logoPlaceholder.imagePath
+      }
     };
   }
 

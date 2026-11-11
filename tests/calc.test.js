@@ -56,6 +56,6 @@ test('deck has seven slides, notes, and tool name substitution', () => {
 test('guardrail wording: no "100% sampling" and caveat present', () => {
   const all = JSON.stringify(cfg);
   assert.ok(!/100% sampling/i.test(all.replace(/Never say “100% sampling”/g, '')));
-  assert.ok(/not 100% assurance/.test(cfg.value.caveat));
+  assert.ok(/not 100% assurance/i.test(cfg.value.caveat));
   assert.ok(!/Software Quality Engineer|Design Quality Engineer/.test(all));
 });
