@@ -1,0 +1,143 @@
+/*
+ * Deck chrome and primitive styling.
+ * Colours and fonts are NOT set here — they come from config.theme and are
+ * applied as CSS variables (--c-*, --font-*) by src/render-html.js.
+ */
+:root {
+  --c-background: #ffffff;
+  --c-text: #14213d;
+  --c-muted: #5b6577;
+  --c-accent: #0f766e;
+  --c-neutral: #c9d0db;
+  --font-body: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-heading: var(--font-body);
+  --app-bg: #e9ecf1;
+}
+:root[data-palette="dark"] { --app-bg: #070d18; }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--app-bg);
+  color: var(--c-text);
+  font-family: var(--font-body);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#viewport {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+#scaler { position: relative; }
+#deck { position: absolute; top: 0; left: 0; width: 1280px; height: 720px; transform-origin: 0 0; }
+
+.slide {
+  position: absolute;
+  inset: 0;
+  width: 1280px;
+  height: 720px;
+  overflow: hidden;
+  display: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .12), 0 8px 24px rgba(0, 0, 0, .08);
+}
+.slide.active { display: block; }
+
+/* ---------- primitives ---------- */
+.p { position: absolute; }
+.p-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+  overflow: hidden;
+  overflow-wrap: break-word;
+}
+.p-line { overflow: visible; }
+.logo-img { object-fit: contain; }
+
+/* ---------- savings inputs ---------- */
+.inputs { display: flex; flex-direction: column; font-family: var(--font-body); }
+.inp-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--c-neutral); }
+.inp-row:last-child { border-bottom: 0; }
+.inp-label { font-size: 14px; color: var(--c-muted); line-height: 1.1; }
+.inp-ctl {
+  font: 600 16px/1.2 var(--font-body);
+  color: var(--c-text);
+  background: var(--c-background);
+  border: 1px solid var(--c-neutral);
+  border-radius: 3px;
+  padding: 2px 6px;
+  width: 76px;
+  height: 27px;
+  text-align: right;
+  flex: none;
+}
+select.inp-ctl { text-align: left; width: 132px; padding: 2px 2px; }
+.inp-ctl:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 1px; }
+
+/* ---------- toolbar & notes ---------- */
+#toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px 12px;
+}
+#toolbar button {
+  font: 500 14px/1 var(--font-body);
+  padding: 8px 12px;
+  border: 1px solid #b8c0cc;
+  background: #fff;
+  color: #14213d;
+  border-radius: 4px;
+  cursor: pointer;
+}
+#toolbar button:hover { border-color: var(--c-accent); }
+#toolbar button:disabled { opacity: .6; cursor: progress; }
+#counter { font: 600 14px var(--font-body); min-width: 52px; text-align: center; color: #5b6577; }
+:root[data-palette="dark"] #counter { color: #a9b4c6; }
+.sep { width: 12px; }
+
+#notes {
+  display: none;
+  margin: 0 16px;
+  padding: 12px 16px;
+  max-height: 26vh;
+  overflow: auto;
+  background: #fff;
+  color: #14213d;
+  border: 1px solid #c9d0db;
+  border-radius: 4px;
+  font-size: 15px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+body.with-notes #notes { display: block; }
+#notes-meta { font-weight: 700; margin-bottom: 6px; color: #0f766e; }
+
+/* ---------- print / PDF fallback: one slide per 13.333 × 7.5 in page ---------- */
+@page { size: 13.333in 7.5in; margin: 0; }
+@media print {
+  html, body { height: auto; overflow: visible; background: none; display: block; }
+  #toolbar, #notes { display: none !important; }
+  #viewport { padding: 0; display: block; }
+  #scaler { width: auto !important; height: auto !important; }
+  #deck { position: static; transform: none !important; width: auto; height: auto; }
+  .slide {
+    display: block !important;
+    position: relative;
+    box-shadow: none;
+    break-after: page;
+    page-break-after: always;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .slide:last-child { break-after: auto; page-break-after: auto; }
+  .inp-ctl { border-color: transparent; background: transparent; appearance: none; -webkit-appearance: none; }
+}

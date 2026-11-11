@@ -1,0 +1,14 @@
+{
+  "name": "aida-leadership-deck",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Configurable 16:9 HTML leadership deck for AIDA with editable PPTX export and print-to-PDF fallback.",
+  "scripts": {
+    "test": "node --test tests/calc.test.js",
+    "export:pptx": "node scripts/export-pptx.js"
+  },
+  "dependencies": {
+    "pptxgenjs": "4.0.1"
+  },
+  "license": "UNLICENSED"
+}

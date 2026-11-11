@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AIDA leadership deck</title>
+  <link rel="stylesheet" href="styles/deck.css">
+</head>
+<body>
+  <main id="viewport" aria-label="Slide deck">
+    <div id="scaler"><div id="deck"></div></div>
+  </main>
+
+  <aside id="notes" aria-label="Speaker notes">
+    <div id="notes-meta"></div>
+    <div id="notes-body"></div>
+  </aside>
+
+  <nav id="toolbar" aria-label="Deck controls">
+    <button id="btn-prev" type="button" aria-label="Previous slide">←</button>
+    <span id="counter" aria-live="polite"></span>
+    <button id="btn-next" type="button" aria-label="Next slide">→</button>
+    <span class="sep"></span>
+    <button id="btn-notes" type="button" title="Toggle speaker notes (N)">Notes</button>
+    <button id="btn-theme" type="button" title="Toggle light / dark palette">Theme</button>
+    <button id="btn-pptx" type="button" title="Download an editable 16:9 .pptx">Export PPTX</button>
+    <button id="btn-pdf" type="button" title="Print / save all slides as PDF">Print / PDF</button>
+  </nav>
+
+  <!-- 1. Content + theme configuration (edit this file for normal updates) -->
+  <script src="config/deck.config.js"></script>
+  <!-- 2. Shared logic -->
+  <script src="src/calc.js"></script>
+  <script src="src/slides.js"></script>
+  <script src="src/pptx-builder.js"></script>
+  <!-- 3. PowerPoint export library (vendored, MIT — works offline) -->
+  <script src="vendor/pptxgenjs/pptxgen.bundle.js"></script>
+  <!-- 4. HTML renderer -->
+  <script src="src/render-html.js"></script>
+</body>
+</html>
