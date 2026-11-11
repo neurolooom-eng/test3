@@ -9,7 +9,7 @@
   var cfg = window.AIDA_DECK_CONFIG, S = window.AIDA_SLIDES, calc = window.AIDA_CALC;
   var PX = 96, PT = 96 / 72;
   var state = S.initialState(cfg);
-  var current = 0, slides = [], showNotes = false;
+  var current = 0, slides = [], showNotes = false, overlayOpen = {};
 
   function palette() { return cfg.theme.palettes[cfg.theme.activePalette] || cfg.theme.palettes.light; }
   function col(token) {
@@ -112,11 +112,25 @@
   function renderInputs(p) {
     var el = box(p);
     el.classList.add('inputs');
+    if (p.overlay) {
+      el.classList.add('overlay-panel');
+      el.dataset.overlay = p.id;
+      el.hidden = !overlayOpen[p.id];
+      var head = document.createElement('div');
+      head.className = 'overlay-head';
+      var ttl = document.createElement('span');
+      ttl.textContent = 'Assumptions · edit to recalculate';
+      var close = document.createElement('button');
+      close.type = 'button'; close.className = 'overlay-close'; close.textContent = 'Done';
+      close.addEventListener('click', function () { setOverlay(p.id, false); });
+      head.appendChild(ttl); head.appendChild(close);
+      el.appendChild(head);
+    }
     var rowH = p.h / p.rows.length * PX;
     p.rows.forEach(function (r) {
       var row = document.createElement('label');
       row.className = 'inp-row';
-      row.style.height = rowH + 'px';
+      if (!p.overlay) row.style.height = rowH + 'px';
       var lab = document.createElement('span');
       lab.className = 'inp-label';
       lab.textContent = r.label;
@@ -159,7 +173,26 @@
     if (again) again.focus();
   }
 
+  function setOverlay(id, open) {
+    overlayOpen[id] = open;
+    document.querySelectorAll('[data-overlay="' + id + '"]').forEach(function (el) { el.hidden = !open; });
+    document.querySelectorAll('[data-toggles="' + id + '"]').forEach(function (b) { b.setAttribute('aria-expanded', String(open)); });
+  }
+
+  function renderToggle(p) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'p toggle-chip';
+    Object.assign(b.style, { left: p.x * PX + 'px', top: p.y * PX + 'px', width: p.w * PX + 'px', height: p.h * PX + 'px' });
+    b.textContent = p.label;
+    b.dataset.toggles = p.target;
+    b.setAttribute('aria-expanded', String(!!overlayOpen[p.target]));
+    b.addEventListener('click', function () { setOverlay(p.target, !overlayOpen[p.target]); });
+    return b;
+  }
+
   function renderPrimitive(p) {
+    if (p.type === 'toggle') return renderToggle(p);
     if (p.type === 'text') return renderText(p);
     if (p.type === 'line') return renderLine(p);
     if (p.type === 'inputs') return renderInputs(p);

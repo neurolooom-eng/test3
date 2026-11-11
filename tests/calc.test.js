@@ -57,5 +57,23 @@ test('guardrail wording: no "100% sampling" and caveat present', () => {
   const all = JSON.stringify(cfg);
   assert.ok(!/100% sampling/i.test(all.replace(/Never say “100% sampling”/g, '')));
   assert.ok(/not 100% assurance/i.test(cfg.value.caveat));
+  assert.ok(/not 100% assurance/i.test(cfg.value.caveatShort));
   assert.ok(!/Software Quality Engineer|Design Quality Engineer/.test(all));
+});
+
+test('slides stay sparse: 35 or fewer visible words each (footnotes excluded)', () => {
+  const deck = slides.buildDeck(cfg, slides.initialState(cfg), calc);
+  deck.forEach((s) => {
+    const n = slides.visibleWords(s);
+    assert.ok(n <= 35, `${s.id} has ${n} visible words`);
+  });
+});
+
+test('removed detail is preserved in speaker notes', () => {
+  const deck = slides.buildDeck(cfg, slides.initialState(cfg), calc);
+  assert.ok(deck[1].notes.includes(cfg.useCaseOne.problemStatement));
+  assert.ok(/HANDOVER/.test(deck[2].notes));
+  assert.ok(/ASSUMPTIONS USED/.test(deck[6].notes));
+  assert.ok(deck[6].notes.includes('not a headcount-reduction claim'));
+  assert.ok(/not yet tested/.test(deck[3].notes));
 });

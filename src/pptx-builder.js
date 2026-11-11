@@ -117,7 +117,7 @@
             line: { color: col(p.color), width: p.width || 1, dashType: p.dash ? 'dash' : 'solid',
               endArrowType: p.arrow ? 'triangle' : undefined, beginArrowType: p.arrowStart ? 'triangle' : undefined }
           });
-        } else if (p.type === 'inputs') {
+        } else if (p.type === 'inputs' && !p.overlay) {
           // Static snapshot of the current assumptions.
           var rh = p.h / p.rows.length;
           p.rows.forEach(function (r, k) {

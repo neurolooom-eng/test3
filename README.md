@@ -33,7 +33,12 @@ The handover line after slide 3 is in the speaker notes for slide 3 (`speakerNot
 
 ## Design
 
-The palette is navy and royal blue, with red used only for gaps, risks and one emphasis per slide. Each slide opens with a section pill and a one-sentence headline, and is built around a single visual: an evidence chain with a return-to-author loop, today/next swimlanes, a lifecycle track, a hub-and-spoke diagram, from→to shifts, or a KPI panel. All of these are configurable in `theme.palettes`.
+- **Headlines and visuals:** each slide has one short headline (8 words or fewer) and one visual. The visuals are an evidence chain with a red return loop, today/next lanes, a lifecycle track, a hub diagram, from→to shifts, and a large capacity number.
+- **Word budget:** about 30 visible words per slide. `npm test` fails if any slide goes over 35 words, not counting footnotes or numbers.
+- **Detail lives in the speaker notes:** problem statements, failure points, full checkpoint questions, demo steps, the handover line, the assumptions and the full disclaimer. Press `N` to show them.
+- **Guardrail wording:** the caveat and the disclaimer stay on the slides as one-line footnotes. Current/future status is shown as small tags.
+- **Assumptions on slide 7:** they are hidden behind the **Assumptions** button. Edit them there and the numbers recalculate. In the PPTX they are listed in the slide 7 speaker notes.
+- **Colour:** navy and royal blue lead, and red is used only for gaps and risk. Change the colours in `theme.palettes`.
 
 ## Editing content: `config/deck.config.js`
 
@@ -94,4 +99,4 @@ Both the HTML deck and the PowerPoint file are drawn from the same shape list, s
 
 - **Fonts:** the default is Segoe UI, which is standard on Windows. On machines without it, the browser falls back through the font stack. PowerPoint substitutes a font on its own, so line breaks can shift a little. Layouts leave room for this, but check the deck on the machine you will present from.
 - **Minimum text size:** slides are built to be visual, so most of the explanation lives in the speaker notes. Headlines are 28 pt and the key statements on slides are 14–20 pt. Some labels are smaller: section pills and eyebrow labels (10.5–12 pt), the slide 7 assumption inputs (about 9.5–12 pt), and the disclaimer (8.5 pt).
-- **Exported assumptions panel:** in the PPTX, slide 7's inputs are a static snapshot of the values at export time. The numbers and bars are also static, so edit the config and re-export to change them.
+- **Exported savings slide:** in the PPTX, slide 7 shows the numbers at export time, and the assumptions are listed in its speaker notes. To change them, edit the config (or the live panel) and export again.

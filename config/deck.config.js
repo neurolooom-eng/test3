@@ -54,52 +54,35 @@
 
     /* ------------------------------------------------------------------ */
     opening: {
-      keyMessage: 'Quality review where decisions are made — not after documents are assembled.',
-      supportingLine: 'Connected evidence + LLM reasoning + deterministic validation.',
+      keyMessage: 'Quality review where decisions are made.',
+      modesLabel: 'Three review modes',
       operatingModes: [
-        { title: 'LLM-based review', text: 'Content, context, quality, consistency' },
-        { title: 'Hybrid review', text: 'LLM reasoning + script validation' },
-        { title: 'Script-based validation', text: 'Mappings, completeness, coverage' }
+        { title: 'LLM', text: 'Content, context, quality, and consistency checks.' },
+        { title: 'Hybrid', text: 'LLM reasoning plus Python/script-based validation.' },
+        { title: 'Script', text: 'Deterministic mappings, completeness, coverage, and repeatable checks.' }
       ],
-      solutionAreas: [
-        { label: 'Document Reviews', focus: true },
-        { label: 'Data Insights', focus: false }
-      ],
-      notes: '{tool} combines connected evidence, LLM reasoning, and deterministic validation to strengthen release traceability and lifecycle readiness. Two solution areas: Document Reviews and Data Insights. Today we focus on Document Reviews and connected source evidence.'
+      notes: 'Key message: quality review should happen where decisions are made—not only after documents are assembled.\n\n{tool} combines connected evidence, LLM reasoning, and deterministic validation to strengthen release traceability and lifecycle readiness.\n\nOperating modes:\n- LLM-based review: content, context, quality, and consistency checks.\n- Hybrid review: LLM reasoning plus Python/script-based validation.\n- Script-based validation: deterministic mappings, completeness, coverage, and repeatable checks.\n\nTwo solution areas: Document Reviews and Data Insights. Today we focus on Document Reviews and connected source evidence.'
     },
 
     /* ------------------------------------------------------------------ */
     useCaseOne: {
       sectionProblem: '1 · The problem',
       headlineProblem: [
-        { text: 'One release change ripples across ' },
-        { text: 'five linked artefacts', emphasis: true },
-        { text: ' — gaps surface only at formal review' }
+        { text: 'Gaps surface late — ' },
+        { text: 'and cycle back', emphasis: true }
       ],
-      tagline: 'Quality is found late, and found again.',
       titleProblem: 'Use Case 1 — Evidence-based Release Traceability Review',
       titleApproach: 'Use Case 1 — From Formal Review to First Time Right',
       problemStatement: 'When release documents enter formal review, QEs must manually reconcile traceability and compliance across tightly coupled artefacts. This creates repeated review cycles and leaves a risk of missed impact, missing mappings, and inconsistent evidence.',
       // Placeholder — configure actual value.
       reviewCycleRange: '3–6',
-      artefacts: [
-        { eyebrow: 'Scope', name: 'Release Plan' },
-        { eyebrow: 'Requirements', name: 'Requirements Document' },
-        { eyebrow: 'Verification', name: 'Test Protocol' },
-        { eyebrow: 'Implementation', name: 'Code Review / PR evidence' },
-        { eyebrow: 'Traceability', name: 'RTM' }
-      ],
+      artefacts: ['Release Plan', 'Requirements', 'Tests', 'Code / PRs', 'RTM'],
       // Gap markers on the chain; `afterArtefact` = index of the artefact before the gap.
       issueLabels: [
-        { afterArtefact: 1, text: 'AC with no mapped test' },
-        { afterArtefact: 3, text: 'PR not linked to requirement' }
+        { afterArtefact: 1, text: 'Unmapped test' },
+        { afterArtefact: 3, text: 'Unlinked PR' }
       ],
-      loopLabel: 'Returned to author · {cycles} review cycles per document',
-      problemCards: [
-        { title: 'Impact missed', text: 'Affected documents mis-identified after a change.' },
-        { title: 'Mappings missing', text: 'Scope → requirement → test → PR → defect links broken or indirect.' },
-        { title: 'Manual, repeated checks', text: 'DHF, GDP and document-quality checks re-run by hand every cycle.' }
-      ],
+      loopLabel: 'review cycles',
       evidenceRelationship: 'Release scope → requirement → acceptance criteria → test coverage → implementation / pull request → defects → consolidated RTM',
       failurePoints: [
         'Impacted documents are incorrectly identified after a change.',
@@ -111,41 +94,27 @@
 
       sectionApproach: '1 · The shift',
       headlineApproach: [
-        { text: 'From formal review to ' },
-        { text: 'First Time Right', emphasis: true }
+        { text: 'Check early. ' },
+        { text: 'Right first time.', emphasis: true }
       ],
-      taglineApproach: 'Same QE-defined checks — moved earlier, run by authors.',
       lanes: [
-        {
-          tag: 'Today · current use', future: false,
-          steps: [
-            { role: 'Author', text: 'Prepares document' },
-            { role: 'QE + {tool}', text: 'Evidence-based review', highlight: true },
-            { role: 'Approval', text: 'After review cycles' }
-          ]
-        },
-        {
-          tag: 'Next · future adoption', future: true,
-          steps: [
-            { role: 'Author + {tool}', text: 'Pre-review, before submission', highlight: true },
-            { role: 'QE', text: 'Strategy, risk, judgement' },
-            { role: 'Approval', text: 'First Time Right' }
-          ]
-        }
+        { label: 'Today', tag: 'Current use', future: false,
+          steps: [{ text: 'Author' }, { text: 'QE + {tool}', highlight: true }, { text: 'Approve' }] },
+        { label: 'Next', tag: 'Future', future: true,
+          steps: [{ text: 'Author + {tool}', highlight: true }, { text: 'QE' }, { text: 'Approve ✓' }] }
       ],
       currentStateNote: 'Today, QEs use {tool} to make formal review evidence-based—reviewing against connected source evidence, not only the document narrative.',
       futureStateNote: 'The same QE-defined, governed checks can be initiated by authors on partial or complete content before formal QE submission. This is a future / adoption model.',
-      outcomeNote: 'Earlier feedback and consistent baseline checks aim to reduce avoidable rework and move formal QE review toward strategy, risk, tailoring, and expert judgement.',
+      outcomeNote: 'First Time Right: earlier feedback and consistent baseline checks aim to reduce avoidable rework and move formal QE review toward strategy, risk, tailoring, and expert judgement.',
       // Placeholder target — present as an assumption, never a guarantee.
       targetReviewCycles: '[target]',
-      targetLabel: 'Target review cycles',
-      targetCaveat: 'For eligible checks · assumption, not a guarantee',
+      targetLabel: 'Target cycles',
       demoSteps: [
-        { short: 'Select scope', detail: 'Select an in-scope release / work item set.' },
-        { short: 'Connected evidence', detail: 'Show connected evidence for a requirement or change.' },
-        { short: 'Run validation', detail: 'Run a {tool} traceability validation.' },
-        { short: 'Surface gaps', detail: 'Surface representative gaps: missing mapping, unlinked PR/defect, coverage issue, or DHF/GDP observation.' },
-        { short: 'QE action', detail: 'Close with the action a QE takes.' }
+        'Select an in-scope release / work item set.',
+        'Show connected evidence for a requirement or change.',
+        'Run a {tool} traceability validation.',
+        'Surface representative gaps: missing mapping, unlinked PR/defect, coverage issue, or DHF/GDP observation.',
+        'Close with the action a QE takes.'
       ]
     },
 
@@ -154,33 +123,19 @@
       sectionProblem: '2 · The checkpoints',
       headlineProblem: [
         { text: 'Review quality ' },
-        { text: 'at the source', emphasis: true },
-        { text: ' — while the product can still change' }
+        { text: 'at the source', emphasis: true }
       ],
-      tagline: 'Source-driven lifecycle quality assurance · already in QE use at multiple stages',
       titleProblem: 'Use Case 2 — Source-driven Lifecycle Quality Assurance',
       titleApproach: 'Use Case 2 — Review Quality at the Source',
       problemStatement: 'Requirement quality, design completeness, and test coverage must be assessed at lifecycle decision points while the product can still be changed—not only after evidence is assembled for formal review.',
+      currentUseTag: 'Current use',
       lifecycleLabels: ['Design Input', 'Development', 'Test readiness', 'Verification'],
-      changeArrowLabel: 'Room to change the product narrows',
+      changeArrowLabel: 'Change gets harder',
       checkpointLabels: [
-        {
-          stage: 0,
-          title: 'Design Input',
-          when: 'Before development',
-          question: 'Are requirements clear, testable and INCOSE-aligned?',
-          value: 'Ambiguity and missing design'
-        },
-        {
-          stage: 2,
-          title: 'Test readiness',
-          when: 'Before verification',
-          question: 'Is every acceptance criterion covered by a test?',
-          value: 'Coverage and traceability gaps'
-        }
+        { stage: 0, title: 'Design Input', question: 'Requirements testable?' },
+        { stage: 2, title: 'Test readiness', question: 'Every AC tested?' }
       ],
-      sourcesLabel: '{tool} pulls from',
-      sources: ['Requirements', 'Detailed design', 'Acceptance criteria', 'Test protocol / suite'],
+      sources: ['Requirements', 'Design', 'Acceptance criteria', 'Tests'],
       // Code review is NOT part of Use Case 2 today. Keep showOnSlide false unless asked.
       codeReviewStatus: {
         status: 'Not yet tested',
@@ -192,25 +147,16 @@
         'Test readiness / before verification begins: do requirements plus detailed design have sufficient coverage in the test protocol or test suite? Is traceability complete at acceptance-criteria level? Finds coverage and traceability gaps before verification execution.'
       ],
 
-      sectionApproach: '2 · One setup, reused',
+      sectionApproach: '2 · One setup',
       headlineApproach: [
         { text: 'Configure once. ' },
-        { text: 'Reuse at every checkpoint.', emphasis: true }
+        { text: 'Reuse everywhere.', emphasis: true }
       ],
-      taglineApproach: 'Current QE use — the same governed checks applied across the lifecycle.',
-      hubTitle: '{tool} quality setup',
-      reusableSetup: [
-        { mode: 'LLM-based', text: 'Requirement quality · INCOSE' },
-        { mode: 'Hybrid', text: 'Context + deterministic checks' },
-        { mode: 'Script-based', text: 'Links · mapping · coverage' }
-      ],
-      checkpointApplies: [
-        'Requirement quality · design needs',
-        'AC-level test coverage'
-      ],
+      hubTitle: '{tool}',
+      reusableSetup: ['LLM', 'Hybrid', 'Script'],
       demoSteps: [
-        { short: 'Design Input', detail: 'Inspect requirement quality and whether detailed design needs are identified.' },
-        { short: 'Test readiness', detail: 'Combine requirement plus detailed design and check acceptance-criteria-level test coverage.' }
+        'Design Input: inspect requirement quality and whether detailed design needs are identified.',
+        'Test readiness: combine requirement plus detailed design and check acceptance-criteria-level test coverage.'
       ]
     },
 
@@ -223,30 +169,32 @@
       ],
       title: 'What {tool} Changes: From Compliance Effort to Quality Impact',
       shifts: [
-        { from: 'Limited sample, document narrative', to: 'Full-population, evidence-based review', tag: 'Current use', kind: 'current' },
-        { from: 'Checks only at formal QE submission', to: 'Author-initiated pre-review', tag: 'Future adoption', kind: 'future' },
-        { from: 'QE time on repeatable checks', to: 'QE time on strategy, risk, judgement', tag: 'Target outcome', kind: 'outcome' }
+        { from: 'Sample', to: 'Full population', tag: 'Current', kind: 'current' },
+        { from: 'At submission', to: 'At authoring', tag: 'Future', kind: 'future' },
+        { from: 'Repeat checks', to: 'Expert judgement', tag: 'Target', kind: 'outcome' }
       ],
       pillarNotes: [
-        'Evidence-based, full-population review: review the complete applicable release scope against connected source evidence—not a limited sample or document narrative alone.',
-        'Author-initiated pre-review: QE-defined, governed checks can be run on partial or complete content before formal QE submission. Future / adoption model where not yet deployed.',
-        'First Time Right, strategy-led QE review: repeatable baseline checks are applied consistently, allowing QEs to focus on quality strategy, risk-based decisions, tailoring, and expert judgement.'
+        'Evidence-based, full-population review (current use): review the complete applicable release scope against connected source evidence—not a limited sample or document narrative alone.',
+        'Author-initiated pre-review (future / adoption model where not yet deployed): QE-defined, governed checks can be run on partial or complete content before formal QE submission.',
+        'First Time Right, strategy-led QE review (target outcome): repeatable baseline checks are applied consistently, allowing QEs to focus on quality strategy, risk-based decisions, tailoring, and expert judgement.'
       ],
-      caveat: 'Not 100% assurance — 100% coverage of the applicable configured checks.',
-      bottomLine: '{tool} does not replace QE judgement. It removes repeatable effort so QE expertise goes deeper where it matters.'
+      caveat: 'This is not 100% assurance. It is 100% coverage of the applicable configured checks.',
+      caveatShort: 'Not 100% assurance — 100% coverage of applicable configured checks.',
+      bottomLine: '{tool} removes repeatable effort. QE judgement goes deeper.',
+      bottomLineNote: '{tool} does not replace QE judgement; it removes repeatable review effort so QE expertise can go deeper where it matters.'
     },
 
     /* ------------------------------------------------------------------ */
     savings: {
       section: '4 · QE capacity',
       headline: [
-        { text: 'Releasing QE capacity for ' },
-        { text: 'deeper technical review', emphasis: true }
+        { text: 'Releasing ' },
+        { text: 'QE capacity', emphasis: true }
       ],
       title: 'Releasing QE Capacity for Deeper Technical Quality Review',
       // Shows an "Illustrative" tag. Set false once real, validated figures are configured.
       showIllustrativeTag: true,
-      illustrativeTag: 'Illustrative · synthetic values',
+      illustrativeTag: 'Illustrative',
       defaultReleaseScenario: 'major',
       defaultUserScenario: 'typical',
       // Applicable adoption / scope (0–1).
@@ -298,19 +246,20 @@
         adoptionRate: 'Applicable adoption / scope (%)',
         currentBar: 'Today',
         aidaBar: 'With {tool}',
-        barsTitle: 'QE hours per release',
-        resultReleased: 'QE capacity released per release',
-        resultPercent: 'Reduction in QE review hours',
-        resultAnnual: 'Annual QE capacity released',
+        resultReleased: 'QE hours released per release',
+        resultPercent: 'fewer QE review hours',
+        resultAnnual: 'released per year',
+        assumptionsButton: 'Assumptions',
         cyclesTargetNote: 'Target / assumption'
       },
-      reinvestmentLead: 'Reinvest into',
+      reinvestmentLead: 'Reinvest in',
       reinvestmentItems: [
-        'Detailed technical reviews',
-        'Risk-based assessment',
-        'Requirements & design',
-        'Early lifecycle support'
+        'Technical reviews',
+        'Risk assessment',
+        'Design quality',
+        'Early lifecycle'
       ],
+      disclaimerShort: 'Indicative estimate, not a headcount claim · varies with complexity, documents, rule coverage, data quality, proficiency and adoption · assumes human review of outputs.',
       disclaimerLines: [
         'This is an indicative QE-capacity estimate, not a headcount-reduction claim. Results vary with release complexity, document count, rule coverage, source-data quality, user proficiency, and adoption.',
         'The calculation reflects only applicable {tool}-assisted checks and assumes appropriate human review of outputs.'
