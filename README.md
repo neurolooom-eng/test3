@@ -98,5 +98,5 @@ Both the HTML deck and the PowerPoint file are drawn from the same shape list, s
 ## Known limitations
 
 - **Fonts:** the default is Segoe UI, which is standard on Windows. On machines without it, the browser falls back through the font stack. PowerPoint substitutes a font on its own, so line breaks can shift a little. Layouts leave room for this, but check the deck on the machine you will present from.
-- **Minimum text size:** slides are built to be visual, so most of the explanation lives in the speaker notes. Headlines are 28 pt and the key statements on slides are 14–20 pt. Some labels are smaller: section pills and eyebrow labels (10.5–12 pt), the slide 7 assumption inputs (about 9.5–12 pt), and the disclaimer (8.5 pt).
+- **Minimum text size:** headlines are 34 pt and diagram labels are 16–30 pt. Some text is smaller: section pills, status tags and the presenter name (10.5–13 pt), and the footnotes (9 pt). The assumptions panel on slide 7 uses small inputs, but it is hidden by default.
 - **Exported savings slide:** in the PPTX, slide 7 shows the numbers at export time, and the assumptions are listed in its speaker notes. To change them, edit the config (or the live panel) and export again.
